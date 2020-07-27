@@ -1,0 +1,162 @@
+#include <stdio.h>
+#include <alsa/asoundlib.h>
+
+#include "raylib.h"
+
+snd_pcm_format_t audio_format = SND_PCM_FORMAT_S16_LE;
+
+snd_pcm_t *init_audio_stream(const char *hw_src) 
+{
+    int err;
+    unsigned int rate = 4000;
+    snd_pcm_t *capture_handle;
+    snd_pcm_hw_params_t *hw_params;
+
+    fprintf(stdout, "Initializing sound stuff...\n");
+
+    if ((err = snd_pcm_open(&capture_handle, hw_src, SND_PCM_STREAM_CAPTURE, 0)) < 0) {
+        fprintf(stderr, "cannot open audio device '%s' (%s)\n", hw_src, snd_strerror(err));
+        exit(1);
+    }
+
+    if ((err = snd_pcm_hw_params_malloc(&hw_params)) < 0) {
+        fprintf(stderr, "cannot allocate hw params (%s)\n", snd_strerror(err));
+        exit(1);
+    }
+
+    if ((err = snd_pcm_hw_params_any(capture_handle, hw_params)) < 0) {
+        fprintf(stderr, "cannot initialize hw params (%s)\n", snd_strerror(err));
+        exit(1);
+    }
+
+    if ((err = snd_pcm_hw_params_set_access(capture_handle, hw_params, SND_PCM_ACCESS_RW_INTERLEAVED)) < 0) {
+        fprintf(stderr, "cannot set hw_params access type (%s)\n", snd_strerror(err));
+        exit(1);
+    }
+
+    if ((err = snd_pcm_hw_params_set_format(capture_handle, hw_params, audio_format)) < 0) {
+        fprintf(stderr, "cannot set audio format (%s)\n", snd_strerror(err));
+        exit(1);
+    }
+
+    if ((err = snd_pcm_hw_params_set_rate_near(capture_handle, hw_params, &rate, 0)) < 0) {
+        fprintf(stderr, "cannot set sample rate (%s)\n", snd_strerror(err));
+        exit(1);
+    }
+
+    if ((err = snd_pcm_hw_params_set_channels(capture_handle, hw_params, 1)) < 0) {
+        fprintf(stderr, "cannot set num channels (%s)\n", snd_strerror(err));
+        exit(1);
+    }
+
+    if ((err = snd_pcm_hw_params(capture_handle, hw_params)) < 0) {
+        fprintf(stderr, "cannot set params (%s)\n", snd_strerror(err));
+        exit(1);
+    }
+
+    snd_pcm_hw_params_free(hw_params);
+
+    if ((err = snd_pcm_prepare(capture_handle)) < 0) {
+        fprintf(stderr, "cannot prepare audio interface for use (%s)\n", snd_strerror(err));
+        exit(1);
+    }
+
+    fprintf(stdout, "Sound stuff initialized!\n");
+
+    return capture_handle;
+}
+
+int process_audio_frame(char b1, char b2)
+{
+    static int max = 1 << 16;
+    
+    int i = (int) b2;
+    i = i << 8;
+    i = i | b1;
+
+    if (i > max / 2) {
+        return max - i;
+    }
+
+    return i;
+}
+
+int main(int argc, char *argv[])
+{
+    if (argc < 2)
+    {
+        fprintf(stderr, "You must provider an audio interface as the first arg.\n");
+        exit(1);	
+    }
+
+    // Initialization
+    //--------------------------------------------------------------------------------------
+    const int screenWidth = 800;
+    const int screenHeight = 450;
+
+    InitWindow(screenWidth, screenHeight, "audio visualizer");
+
+    SetTargetFPS(30);
+    //--------------------------------------------------------------------------------------
+
+    int err;
+    int n = 0;
+    char str[40];
+
+    snd_pcm_t *capture_handle = init_audio_stream(argv[1]);
+  
+    fprintf(stdout, "audio format width: %d\n", snd_pcm_format_width(audio_format));
+
+    int audio_buffer_frames = 256;
+    char *audio_buffer = malloc(audio_buffer_frames * snd_pcm_format_width(audio_format) / 8);
+
+    // Main game loop
+    while (!WindowShouldClose() && n < 1000)    // Detect window close button or ESC key
+    {
+        // Update
+        //----------------------------------------------------------------------------------
+
+	    long int pending_frames = snd_pcm_avail_update(capture_handle);
+    	if ((err = snd_pcm_forward(capture_handle, pending_frames)) < 0) {
+	        fprintf(stderr, "error skipping forward in stream (%s)\n", snd_strerror(err));
+            break;
+        }
+
+        if ((err = snd_pcm_readi(capture_handle, audio_buffer, audio_buffer_frames)) != audio_buffer_frames) {
+            fprintf(stderr, "audio stream read failed: %s", snd_strerror(err));
+            break;
+        }
+
+
+        n++;
+        sprintf(str, "frame %d; avail: %ld", n, snd_pcm_avail(capture_handle));
+
+        // Draw
+        //----------------------------------------------------------------------------------
+        BeginDrawing();
+
+            ClearBackground(RAYWHITE);
+
+            DrawText(str, 200, 300, 20, LIGHTGRAY);
+        
+            for (int i = 0; i < 2 * audio_buffer_frames; i += 2)
+            {
+                int audio_value = process_audio_frame(audio_buffer[i], audio_buffer[i+1]);
+                int y = 10 + (audio_value / 65600.0f) * 200;
+                DrawLine(i, 0, i, y, BLACK);
+                //DrawPixel(i, y, BLACK);
+            }
+
+	    DrawText(str, 200, 300, 20, GREEN);
+
+        EndDrawing();
+        //----------------------------------------------------------------------------------
+    }
+
+    // De-Initialization
+    //--------------------------------------------------------------------------------------
+    CloseWindow();        // Close window and OpenGL context
+    //--------------------------------------------------------------------------------------
+
+    return 0;
+}
