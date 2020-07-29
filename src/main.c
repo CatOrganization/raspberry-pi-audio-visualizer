@@ -92,6 +92,18 @@ Color interpolate_color(Color start, Color end, float percent)
     return (Color) { 0, value, 0, 255};
 }
 
+void draw_sound_wave(Vector2 *line_point_buffer, double *values, int size, int baseline_y, int scale, Color color)
+{
+    for (int i = 0; i < size; i += 2)
+    {
+        int y = baseline_y + (values[i] * scale);
+        line_point_buffer[i/2].x = i*2;
+        line_point_buffer[i/2].y = y;
+    }
+
+    DrawLineStrip(line_point_buffer, size/2, color);
+}
+
 Color inverse_color(Color c) 
 {
     return (Color) {0, 255 - c.g, 0, c.a};
@@ -127,11 +139,12 @@ int main(int argc, char *argv[])
     fprintf(stdout, "audio format width: %d\n", snd_pcm_format_width(audio_format));
    
     int audio_buffer_frames = 800;
-    char *audio_buffer = malloc(audio_buffer_frames * snd_pcm_format_width(audio_format) / 8);
+    char *raw_audio = malloc(audio_buffer_frames * snd_pcm_format_width(audio_format) / 8);
+    double *audio_frames = malloc(sizeof(double) * audio_buffer_frames);
+    double *bass_filtered_audio_frames = malloc(sizeof(double) * audio_buffer_frames);
+    double *treble_filtered_audio_frames = malloc(sizeof(double) * audio_buffer_frames);
 
     Vector2 *line_points = malloc(sizeof(Vector2) * audio_buffer_frames);
-
-    FILE *fptr = fopen("output.txt", "w");
 
     Color c = RAYWHITE;
     float max_y = 0;
@@ -148,7 +161,7 @@ int main(int argc, char *argv[])
             break;
         }
 
-        if ((err = snd_pcm_readi(capture_handle, audio_buffer, audio_buffer_frames)) != audio_buffer_frames) {
+        if ((err = snd_pcm_readi(capture_handle, raw_audio, audio_buffer_frames)) != audio_buffer_frames) {
             fprintf(stderr, "audio stream read failed: %s", snd_strerror(err));
             break;
         }
@@ -160,44 +173,26 @@ int main(int argc, char *argv[])
         //----------------------------------------------------------------------------------
         BeginDrawing();
 
-            ClearBackground((c));
+            ClearBackground(BLACK);//(c));
 
             max_y = 0;        
             
-            for (int i = 0; i < (2 * audio_buffer_frames); i += 2)
+            // Process audio values
+            for (int i = 0; i < (2 * audio_buffer_frames) - 1; i += 2)
             {
-                int audio_value0 = (process_audio_frame(audio_buffer[i-4], audio_buffer[i-3]));                
-                int audio_value1 = (process_audio_frame(audio_buffer[i-2], audio_buffer[i-1]))*1;
-                int audio_value2 = (process_audio_frame(audio_buffer[i], audio_buffer[i+1]))*1;
-                int audio_value3 = (process_audio_frame(audio_buffer[i+2], audio_buffer[i+3]))*1;                
-                int audio_value4 = (process_audio_frame(audio_buffer[i+4], audio_buffer[i+5]));
-                int audio_value = (audio_value0 + audio_value1 + audio_value2 + audio_value3 + audio_value4) / 5;
-
-                int y = (audio_value / 32000.0f) * (screenHeight);
-
-		        //DrawRectangle(i/2, (screenHeight/2)-(0), 1, y, RED);
-                line_points[i/2].x = i;///2;
-                line_points[i/2].y = (screenHeight/2)-(y);
-
-                //if (i > 2 && abs(y) < 5) {
-                //    line_points[i/2].y = (line_points[(i/2)-1].y + line_points[i/2].y) / 2;
-                //}
-
-                if (abs(y) > max_y)
-                {
-                    max_y = (float) abs(y);
-                }
-
-                //fprintf(fptr, "%d,", audio_value2);
+                audio_frames[i/2] = process_audio_frame(raw_audio[i], raw_audio[i+1]) / 32000.0;
             }
 
-            //fprintf(fptr, "\n");
-        
-            c = interpolate_color(GREEN, BLUE, max_y / screenHeight); //(n % 120) / 120.0f);
-
-            DrawLineStrip(line_points, audio_buffer_frames, inverse_color(c));
+            ApplyLinearFilter(LowPassBassFilter, audio_frames, &bass_filtered_audio_frames, audio_buffer_frames);
+            ApplyLinearFilter(HighPassTrebleFilter, audio_frames, &treble_filtered_audio_frames, audio_buffer_frames);
             
-            //DrawText(str, 0, 0, 20, RAYWHITE);
+            draw_sound_wave(line_points, treble_filtered_audio_frames, audio_buffer_frames, 225, 300, RED);
+            draw_sound_wave(line_points, audio_frames, audio_buffer_frames, 450, 300, GREEN);
+            draw_sound_wave(line_points, bass_filtered_audio_frames, audio_buffer_frames, 675, 300, BLUE);
+
+            //c = interpolate_color(GREEN, BLUE, max_y / screenHeight); //(n % 120) / 120.0f);
+
+            DrawText(str, 0, 0, 20, RAYWHITE);
 
         EndDrawing();
         //----------------------------------------------------------------------------------
@@ -207,8 +202,6 @@ int main(int argc, char *argv[])
     //--------------------------------------------------------------------------------------
     CloseWindow();        // Close window and OpenGL context
     //--------------------------------------------------------------------------------------
-
-    fclose(fptr);
 
     return 0;
 }
