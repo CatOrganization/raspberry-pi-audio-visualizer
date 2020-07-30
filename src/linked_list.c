@@ -16,6 +16,8 @@ void linked_list_add(LinkedList *list, void *data)
     {
         prev_head->prev = list->head;
     }
+
+    list->size++;
 }
 
 void linked_list_for_each(LinkedList *list, linked_list_action_func *func)
@@ -48,6 +50,8 @@ void linked_list_for_each(LinkedList *list, linked_list_action_func *func)
             LinkedListNode *old_current = current;
             current = current->next;
             free(old_current);
+
+            list->size--;
         }
         else
         {

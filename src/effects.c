@@ -11,6 +11,17 @@ double get_random_number(double min, double max)
     return min + (((double) rand() / RAND_MAX) * range);
 }
 
+Color get_random_color(float saturation)
+{
+    Vector3 hsv;
+
+    hsv.x = get_random_number(0.0, 360);
+    hsv.y = saturation;
+    hsv.z = 1.0f;
+
+    return ColorFromHSV(hsv);
+}
+
 Firework *new_firework(int x, int y, Color base_color, double duration_coefficient)
 {
     Firework *firework = malloc(sizeof(Firework));
@@ -34,8 +45,8 @@ void draw_firework(Firework *firework)
 {
     for (int i = 0; i < NUM_FIREWORK_PARTICLES; i++)
     {
-        //DrawRectangle(firework->particles[i].x, firework->particles[i].y, 3, 3, firework->color);
-        DrawPixel(firework->particles[i].x, firework->particles[i].y, firework->color);
+        DrawRectangle(firework->particles[i].x, firework->particles[i].y, 3, 3, firework->color);
+        //DrawPixel(firework->particles[i].x, firework->particles[i].y, firework->color);
     }
 }
 

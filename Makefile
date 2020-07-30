@@ -201,7 +201,7 @@ else
     ifeq ($(PLATFORM),PLATFORM_WEB)
         CFLAGS += -Os
     else
-        CFLAGS += -s -O1
+        CFLAGS += -s -O2
     endif
 endif
 

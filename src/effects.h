@@ -4,7 +4,10 @@
 #include "raylib.h"
 
 #define NUM_FIREWORK_PARTICLES 20
-#define FIREWORK_DURATION 30
+#define FIREWORK_DURATION 20
+
+// Gets a random color at the given saturation level
+Color get_random_color(float saturation);
 
 typedef struct Firework {
     Vector2 particles[NUM_FIREWORK_PARTICLES];
@@ -22,6 +25,5 @@ void draw_firework(Firework *firework);
 
 // Update the given firework. Returns false if the firework is finished updating and should be removed
 bool update_firework(Firework *firework);
-
 
 #endif

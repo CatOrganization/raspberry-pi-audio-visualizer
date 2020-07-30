@@ -171,8 +171,10 @@ int main(int argc, char *argv[])
 
     LinkedList firework_list;
     firework_list.head = NULL;
-    linked_list_add(&firework_list, new_firework(200, 200, GREEN, 1.0));
+    firework_list.size = 0;
 
+    linked_list_add(&firework_list, new_firework(200, 200, GREEN, 1.0));
+    
     // Main game loop
     while (!WindowShouldClose())    // Detect window close button or ESC key
     {
@@ -190,15 +192,15 @@ int main(int argc, char *argv[])
             break;
         }
 
-        if (IsKeyDown(32))
+        if (IsKeyDown(32) && firework_list.size < 10)
         {
             int x = (int) ((double) rand() / RAND_MAX * screenWidth);
             int y = (int) ((double) rand() / RAND_MAX * screenHeight);
-            linked_list_add(&firework_list, new_firework(x, y, GREEN, 1.0));
+            linked_list_add(&firework_list, new_firework(x, y, get_random_color(1.0f), 1.0));
         }
 
         n++;
-        sprintf(str, "fps: %d", GetFPS());
+        sprintf(str, "fps: %d\nfireworks: %d", GetFPS(), firework_list.size);
         
         linked_list_for_each(&firework_list, &firework_list_update);  
         
@@ -215,7 +217,7 @@ int main(int argc, char *argv[])
             {
                 audio_frames[i/2] = process_audio_frame(raw_audio[i], raw_audio[i+1]) / 32000.0;
             }
-
+            
             ApplyLinearFilter(LowPassBassFilter, audio_frames, &bass_filtered_audio_frames, audio_buffer_frames);
             ApplyLinearFilter(HighPassTrebleFilter, audio_frames, &treble_filtered_audio_frames, audio_buffer_frames);
             
@@ -224,9 +226,9 @@ int main(int argc, char *argv[])
             //draw_sound_wave(line_points, bass_filtered_audio_frames, audio_buffer_frames, 675, 300, BLUE);
 
             //c = interpolate_color(GREEN, BLUE, max_y / screenHeight); //(n % 120) / 120.0f);
-
+            
             linked_list_for_each(&firework_list, &firework_list_draw);
-
+            
             DrawText(str, 0, 0, 20, RAYWHITE);
 
         EndDrawing();
