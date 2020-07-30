@@ -144,6 +144,10 @@ int main(int argc, char *argv[])
 
     InitWindow(screenWidth, screenHeight, "audio visualizer");
 
+    Shader wave_shader = LoadShader(0, TextFormat("resources/shaders/wave.fs", 100));
+    int screen_height_loc = GetShaderLocation(wave_shader, "screen_height");
+    SetShaderValue(wave_shader, screen_height_loc, &screenHeight, UNIFORM_INT);
+
     SetTargetFPS(30);
     //--------------------------------------------------------------------------------------
 
@@ -175,6 +179,11 @@ int main(int argc, char *argv[])
 
     linked_list_add(&firework_list, new_firework(200, 200, GREEN, 1.0));
     
+    WaveLine wave_line = init_wave_line(wave_shader, "wave_", screenWidth, screenHeight); 
+    set_wave_line_intensity(&wave_line, 100);
+    set_wave_line_color(&wave_line, (Color) {0, 82, 172, 200});
+    float wave_y = screenHeight + 100;
+
     // Main game loop
     while (!WindowShouldClose())    // Detect window close button or ESC key
     {
@@ -198,6 +207,9 @@ int main(int argc, char *argv[])
             int y = (int) ((double) rand() / RAND_MAX * screenHeight);
             linked_list_add(&firework_list, new_firework(x, y, get_random_color(1.0f), 1.0));
         }
+        
+        wave_y -= 20;
+        if (wave_y < -200) wave_y = screenHeight + 100;
 
         n++;
         sprintf(str, "fps: %d\nfireworks: %d", GetFPS(), firework_list.size);
@@ -220,7 +232,9 @@ int main(int argc, char *argv[])
             
             ApplyLinearFilter(LowPassBassFilter, audio_frames, &bass_filtered_audio_frames, audio_buffer_frames);
             ApplyLinearFilter(HighPassTrebleFilter, audio_frames, &treble_filtered_audio_frames, audio_buffer_frames);
-            
+
+            draw_wave_line(&wave_line, wave_y);
+
             //draw_sound_wave(line_points, treble_filtered_audio_frames, audio_buffer_frames, 225, 300, RED);
             draw_sound_wave(line_points, audio_frames, audio_buffer_frames, 450, 300, GREEN);
             //draw_sound_wave(line_points, bass_filtered_audio_frames, audio_buffer_frames, 675, 300, BLUE);
@@ -228,7 +242,7 @@ int main(int argc, char *argv[])
             //c = interpolate_color(GREEN, BLUE, max_y / screenHeight); //(n % 120) / 120.0f);
             
             linked_list_for_each(&firework_list, &firework_list_draw);
-            
+
             DrawText(str, 0, 0, 20, RAYWHITE);
 
         EndDrawing();
@@ -237,6 +251,7 @@ int main(int argc, char *argv[])
 
     // De-Initialization
     //--------------------------------------------------------------------------------------
+    UnloadShader(wave_shader);
     CloseWindow();        // Close window and OpenGL context
     //--------------------------------------------------------------------------------------
 
