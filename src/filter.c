@@ -20,10 +20,17 @@ const LinearFilter HighPassTrebleFilter = {
     highPassTrebleFilterDenominatorCoefficients
 };
 
-void ApplyLinearFilter(LinearFilter filter, double *input, double **output, int size)
+double absf(double d)
+{
+    if (d < 0) return -d;
+    return d;
+}
+
+double apply_linear_filter(LinearFilter filter, double *input, double **output, int size)
 {
     double input_influence = 0;
     double output_influence = 0;
+    double max = 0;
         
     // We have to start at i = filter.order so we have enough look back buffer
     for (int i = filter.order; i < size; i++)
@@ -44,5 +51,12 @@ void ApplyLinearFilter(LinearFilter filter, double *input, double **output, int 
         }
 
         (*output)[i] = input_influence - output_influence;
+
+        if (absf((*output)[i]) > max)
+        {
+            max = absf((*output)[i]);
+        }
     }
+
+    return max;
 }

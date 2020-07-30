@@ -19,7 +19,11 @@ const LinearFilter LowPassBassFilter;
 // Coefficients calculated via SciPy: scipy.signal.butter(4, 2000, btype='highpass', fs=44100)
 const LinearFilter HighPassTrebleFilter;
 
+// absf returns the absolute value of the given double
+double absf(double d);
+
 // Applies the given filter to the input and puts the result in output
-void ApplyLinearFilter(LinearFilter filter, double *input, double **output, int size);
+// Returns the amplitude of the loudest wave in the given sample
+double apply_linear_filter(LinearFilter filter, double *input, double **output, int size);
 
 #endif

@@ -6,6 +6,10 @@
 #include "effects.h"
 #include "linked_list.h"
 
+
+const int screenWidth = 1600;
+const int screenHeight = 900;
+
 snd_pcm_format_t audio_format = SND_PCM_FORMAT_S16_LE;
 
 snd_pcm_t *init_audio_stream(const char *hw_src) 
@@ -86,6 +90,49 @@ int process_audio_frame(char b1, char b2)
     return i;
 }
 
+double prev_treble_max = 0;
+int firework_cooldown = 0;
+void process_treble(LinkedList *firework_list, double treble_max)
+{
+    firework_cooldown--;
+
+    if (firework_cooldown <= 0 && firework_list->size < 10 && treble_max - prev_treble_max > 0.1)
+    {
+        int x = (int) ((double) rand() / RAND_MAX * screenWidth);
+        int y = (int) ((double) rand() / RAND_MAX * screenHeight);
+        linked_list_add(firework_list, new_firework(x, y, get_random_color(1.0f), 1.0));
+        firework_cooldown = 5;
+    }
+}
+
+float wave_y = screenHeight;
+float wave_speed = 0;
+bool show_wave = false;
+void process_bass(WaveLine *wave_line, double bass_max)
+{
+    if (bass_max > 0.02)
+    {
+        show_wave = true;
+        wave_speed = -20;
+    }
+    else if (show_wave && wave_speed == 0)
+    {
+        show_wave = false;
+        wave_y = screenHeight;
+    }
+
+    if (wave_speed < 0)
+    {
+        set_wave_line_color(wave_line, (Color) {0, 82, 172, (char) ((wave_speed / -20.0) * 200)});
+        wave_y += wave_speed;
+        wave_speed++; 
+        if (wave_y < -100)
+        {
+            wave_y = screenHeight;
+        }
+    }
+}
+
 Color interpolate_color(Color start, Color end, float percent)
 {
     int value = percent * 255;
@@ -139,9 +186,6 @@ int main(int argc, char *argv[])
 
     // Initialization
     //--------------------------------------------------------------------------------------
-    const int screenWidth = 1600;
-    const int screenHeight = 900;
-
     InitWindow(screenWidth, screenHeight, "audio visualizer");
 
     Shader wave_shader = LoadShader(0, TextFormat("resources/shaders/wave.fs", 100));
@@ -182,7 +226,6 @@ int main(int argc, char *argv[])
     WaveLine wave_line = init_wave_line(wave_shader, "wave_", screenWidth, screenHeight); 
     set_wave_line_intensity(&wave_line, 100);
     set_wave_line_color(&wave_line, (Color) {0, 82, 172, 200});
-    float wave_y = screenHeight + 100;
 
     // Main game loop
     while (!WindowShouldClose())    // Detect window close button or ESC key
@@ -200,6 +243,28 @@ int main(int argc, char *argv[])
             fprintf(stderr, "audio stream read failed: %s", snd_strerror(err));
             break;
         }
+        
+        
+        max_y = -1;        
+            
+        // Process audio values
+        for (int i = 0; i < (2 * audio_buffer_frames) - 1; i += 2)
+        {
+            audio_frames[i/2] = process_audio_frame(raw_audio[i], raw_audio[i+1]) / 32000.0;
+            if (absf(audio_frames[i/2]) > max_y)
+            {
+                max_y = absf(audio_frames[i/2]);
+            }
+        }
+            
+        c = interpolate_color(GREEN, BLUE, max_y);
+           
+        double bass_max = apply_linear_filter(LowPassBassFilter, audio_frames, &bass_filtered_audio_frames, audio_buffer_frames);
+        double treble_max = apply_linear_filter(HighPassTrebleFilter, audio_frames, &treble_filtered_audio_frames, audio_buffer_frames);
+
+        process_treble(&firework_list, treble_max);
+        process_bass(&wave_line, bass_max);
+
 
         if (IsKeyDown(32) && firework_list.size < 10)
         {
@@ -208,11 +273,8 @@ int main(int argc, char *argv[])
             linked_list_add(&firework_list, new_firework(x, y, get_random_color(1.0f), 1.0));
         }
         
-        wave_y -= 20;
-        if (wave_y < -200) wave_y = screenHeight + 100;
-
         n++;
-        sprintf(str, "fps: %d\nfireworks: %d", GetFPS(), firework_list.size);
+        sprintf(str, "fps: %d\nfireworks: %d\nbass_max: %f", GetFPS(), firework_list.size, bass_max);
         
         linked_list_for_each(&firework_list, &firework_list_update);  
         
@@ -220,26 +282,13 @@ int main(int argc, char *argv[])
         //----------------------------------------------------------------------------------
         BeginDrawing();
 
-            ClearBackground(BLACK);//(c));
+            ClearBackground(c);
 
-            max_y = 0;        
-            
-            // Process audio values
-            for (int i = 0; i < (2 * audio_buffer_frames) - 1; i += 2)
+            if (show_wave) 
             {
-                audio_frames[i/2] = process_audio_frame(raw_audio[i], raw_audio[i+1]) / 32000.0;
+                draw_wave_line(&wave_line, wave_y);
             }
-            
-            ApplyLinearFilter(LowPassBassFilter, audio_frames, &bass_filtered_audio_frames, audio_buffer_frames);
-            ApplyLinearFilter(HighPassTrebleFilter, audio_frames, &treble_filtered_audio_frames, audio_buffer_frames);
-
-            draw_wave_line(&wave_line, wave_y);
-
-            //draw_sound_wave(line_points, treble_filtered_audio_frames, audio_buffer_frames, 225, 300, RED);
-            draw_sound_wave(line_points, audio_frames, audio_buffer_frames, 450, 300, GREEN);
-            //draw_sound_wave(line_points, bass_filtered_audio_frames, audio_buffer_frames, 675, 300, BLUE);
-
-            //c = interpolate_color(GREEN, BLUE, max_y / screenHeight); //(n % 120) / 120.0f);
+            draw_sound_wave(line_points, audio_frames, audio_buffer_frames, 450, screenHeight, inverse_color(c));
             
             linked_list_for_each(&firework_list, &firework_list_draw);
 
