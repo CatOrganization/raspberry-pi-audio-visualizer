@@ -4,6 +4,7 @@
 #include "raylib.h"
 #include "filter.h"
 #include "effects.h"
+#include "linked_list.h"
 
 snd_pcm_format_t audio_format = SND_PCM_FORMAT_S16_LE;
 
@@ -110,6 +111,24 @@ Color inverse_color(Color c)
     return (Color) {0, 255 - c.g, 0, c.a};
 }
 
+int firework_list_update(void *data)
+{
+    if (!update_firework((Firework *)data))
+    {
+        // If update returns false, the firework is done. We should free it and delete it from the list
+        free(data);
+        return false;
+    }
+
+    return true;
+}
+
+int firework_list_draw(void *data)
+{
+    draw_firework((Firework *) data);
+    return true;
+}
+
 int main(int argc, char *argv[])
 {
     if (argc < 2)
@@ -150,13 +169,9 @@ int main(int argc, char *argv[])
     Color c = RAYWHITE;
     float max_y = 0;
 
-    Firework *firework = new_firework(200, 200, GREEN, 1.0);
-
-    for (int i = 0; i < 20; i++)
-    {
-        fprintf(stdout, "i: %d\tv: (%f, %f)\n", i, firework->particle_velocities[i].x, firework->particle_velocities[i].y);
-        
-    }
+    LinkedList firework_list;
+    firework_list.head = NULL;
+    linked_list_add(&firework_list, new_firework(200, 200, GREEN, 1.0));
 
     // Main game loop
     while (!WindowShouldClose())    // Detect window close button or ESC key
@@ -175,15 +190,17 @@ int main(int argc, char *argv[])
             break;
         }
 
+        if (IsKeyDown(32))
+        {
+            int x = (int) ((double) rand() / RAND_MAX * screenWidth);
+            int y = (int) ((double) rand() / RAND_MAX * screenHeight);
+            linked_list_add(&firework_list, new_firework(x, y, GREEN, 1.0));
+        }
+
         n++;
         sprintf(str, "fps: %d", GetFPS());
         
-        
-        if (!update_firework(firework))
-        {
-            free(firework);
-            firework = new_firework(200, 200, GREEN, 1.0);
-        }
+        linked_list_for_each(&firework_list, &firework_list_update);  
         
         // Draw
         //----------------------------------------------------------------------------------
@@ -202,13 +219,13 @@ int main(int argc, char *argv[])
             ApplyLinearFilter(LowPassBassFilter, audio_frames, &bass_filtered_audio_frames, audio_buffer_frames);
             ApplyLinearFilter(HighPassTrebleFilter, audio_frames, &treble_filtered_audio_frames, audio_buffer_frames);
             
-            draw_sound_wave(line_points, treble_filtered_audio_frames, audio_buffer_frames, 225, 300, RED);
+            //draw_sound_wave(line_points, treble_filtered_audio_frames, audio_buffer_frames, 225, 300, RED);
             draw_sound_wave(line_points, audio_frames, audio_buffer_frames, 450, 300, GREEN);
-            draw_sound_wave(line_points, bass_filtered_audio_frames, audio_buffer_frames, 675, 300, BLUE);
+            //draw_sound_wave(line_points, bass_filtered_audio_frames, audio_buffer_frames, 675, 300, BLUE);
 
             //c = interpolate_color(GREEN, BLUE, max_y / screenHeight); //(n % 120) / 120.0f);
 
-            draw_firework(firework);
+            linked_list_for_each(&firework_list, &firework_list_draw);
 
             DrawText(str, 0, 0, 20, RAYWHITE);
 
@@ -220,8 +237,6 @@ int main(int argc, char *argv[])
     //--------------------------------------------------------------------------------------
     CloseWindow();        // Close window and OpenGL context
     //--------------------------------------------------------------------------------------
-
-    free(firework);
 
     return 0;
 }

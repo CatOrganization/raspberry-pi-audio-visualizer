@@ -3,7 +3,7 @@
 
 #include "raylib.h"
 
-#define NUM_FIREWORK_PARTICLES 30
+#define NUM_FIREWORK_PARTICLES 20
 #define FIREWORK_DURATION 30
 
 typedef struct Firework {
