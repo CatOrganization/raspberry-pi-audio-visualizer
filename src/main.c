@@ -3,6 +3,7 @@
 
 #include "raylib.h"
 #include "filter.h"
+#include "effects.h"
 
 snd_pcm_format_t audio_format = SND_PCM_FORMAT_S16_LE;
 
@@ -149,6 +150,14 @@ int main(int argc, char *argv[])
     Color c = RAYWHITE;
     float max_y = 0;
 
+    Firework *firework = new_firework(200, 200, GREEN, 1.0);
+
+    for (int i = 0; i < 20; i++)
+    {
+        fprintf(stdout, "i: %d\tv: (%f, %f)\n", i, firework->particle_velocities[i].x, firework->particle_velocities[i].y);
+        
+    }
+
     // Main game loop
     while (!WindowShouldClose())    // Detect window close button or ESC key
     {
@@ -168,7 +177,14 @@ int main(int argc, char *argv[])
 
         n++;
         sprintf(str, "fps: %d", GetFPS());
-
+        
+        
+        if (!update_firework(firework))
+        {
+            free(firework);
+            firework = new_firework(200, 200, GREEN, 1.0);
+        }
+        
         // Draw
         //----------------------------------------------------------------------------------
         BeginDrawing();
@@ -192,6 +208,8 @@ int main(int argc, char *argv[])
 
             //c = interpolate_color(GREEN, BLUE, max_y / screenHeight); //(n % 120) / 120.0f);
 
+            draw_firework(firework);
+
             DrawText(str, 0, 0, 20, RAYWHITE);
 
         EndDrawing();
@@ -202,6 +220,8 @@ int main(int argc, char *argv[])
     //--------------------------------------------------------------------------------------
     CloseWindow();        // Close window and OpenGL context
     //--------------------------------------------------------------------------------------
+
+    free(firework);
 
     return 0;
 }
