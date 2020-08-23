@@ -46,7 +46,7 @@ void draw_firework(Firework *firework)
 {
     for (int i = 0; i < NUM_FIREWORK_PARTICLES; i++)
     {
-        DrawRectangle(firework->particles[i].x, firework->particles[i].y, 3, 3, firework->color);
+        DrawRectangle(firework->particles[i].x, firework->particles[i].y, 5, 5, firework->color);
         //DrawPixel(firework->particles[i].x, firework->particles[i].y, firework->color);
     }
 }

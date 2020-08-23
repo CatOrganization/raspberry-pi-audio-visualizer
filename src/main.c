@@ -96,7 +96,7 @@ void process_treble(LinkedList *firework_list, double treble_max)
 {
     firework_cooldown--;
 
-    if (firework_cooldown <= 0 && firework_list->size < 10 && treble_max - prev_treble_max > 0.1)
+    if (firework_cooldown <= 0 && firework_list->size < 10 && treble_max - prev_treble_max > 0.02)
     {
         int x = (int) ((double) rand() / RAND_MAX * screenWidth);
         int y = (int) ((double) rand() / RAND_MAX * screenHeight);
@@ -110,10 +110,10 @@ float wave_speed = 0;
 bool show_wave = false;
 void process_bass(WaveLine *wave_line, double bass_max)
 {
-    if (bass_max > 0.02)
+    if (bass_max > 0.05)
     {
         show_wave = true;
-        wave_speed = -20;
+        wave_speed = -100;
     }
     else if (show_wave && wave_speed == 0)
     {
@@ -123,9 +123,9 @@ void process_bass(WaveLine *wave_line, double bass_max)
 
     if (wave_speed < 0)
     {
-        set_wave_line_color(wave_line, (Color) {0, 82, 172, (char) ((wave_speed / -20.0) * 200)});
+        set_wave_line_color(wave_line, (Color) {0, 82, 172, (char) ((wave_speed / -100.0) * 200)});
         wave_y += wave_speed;
-        wave_speed++; 
+        wave_speed += 10; 
         if (wave_y < -100)
         {
             wave_y = screenHeight;
@@ -274,7 +274,7 @@ int main(int argc, char *argv[])
         }
         
         n++;
-        sprintf(str, "fps: %d\nfireworks: %d\nbass_max: %f", GetFPS(), firework_list.size, bass_max);
+        sprintf(str, "fps: %d\nfireworks: %d\nbass_max: %f\ntreble: %f", GetFPS(), firework_list.size, bass_max, treble_max);
         
         linked_list_for_each(&firework_list, &firework_list_update);  
         
