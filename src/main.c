@@ -73,6 +73,13 @@ snd_pcm_t *init_audio_stream(const char *hw_src)
     return capture_handle;
 }
 
+void run_command(const char *command, char *output, int output_len)
+{
+	FILE *fp = popen(command, "r");
+	fgets(output, output_len, fp);
+	pclose(fp);
+}
+
 int process_audio_frame(char b1, char b2)
 {
     static int max = 1 << 16;
@@ -201,6 +208,8 @@ int main(int argc, char *argv[])
     int err;
     int n = 0;
     char str[400];
+    char cmd_output[128];
+    bool verbose_mode = false;
 
     snd_pcm_t *capture_handle = init_audio_stream(argv[1]);
   
@@ -229,7 +238,8 @@ int main(int argc, char *argv[])
 
     // Main game loop
     while (!WindowShouldClose())    // Detect window close button or ESC key
-    {
+	 {
+	 	  int key_pressed = GetKeyPressed();	     
         // Update
         //----------------------------------------------------------------------------------
 
@@ -272,9 +282,27 @@ int main(int argc, char *argv[])
             int y = (int) ((double) rand() / RAND_MAX * screenHeight);
             linked_list_add(&firework_list, new_firework(x, y, get_random_color(1.0f), 2.5f));
         }
-        
+			
+		
+		  // 'v' or 'd' toggles verbose/debug mode        
+        if (key_pressed == 118 || key_pressed == 100)
+        {
+        		if (verbose_mode) 
+        		{
+        			verbose_mode=0;
+        		} else {
+        			verbose_mode=1;
+				}
+        }
+   		
+   	  // only check temp once every 5 seconds     
+        if (n % (30 * 5) == 0)
+        {
+	        run_command("vcgencmd measure_temp", cmd_output, 128);
+        }        
+
         n++;
-        sprintf(str, "fps: %d\nfireworks: %d\nbass_max: %f\ntreble: %f", GetFPS(), firework_list.size, bass_max, treble_max);
+        sprintf(str, "fps: %d\nfireworks: %d\nbass_max: %f\ntreble: %f\n%s", GetFPS(), firework_list.size, bass_max, treble_max, cmd_output);
         
         linked_list_for_each(&firework_list, &firework_list_update);  
         
@@ -292,8 +320,10 @@ int main(int argc, char *argv[])
             
             linked_list_for_each(&firework_list, &firework_list_draw);
 
-            DrawText(str, 0, 0, 20, RAYWHITE);
-
+				if (verbose_mode) 
+				{
+	            DrawText(str, 0, 0, 20, RAYWHITE);
+				}
         EndDrawing();
         //----------------------------------------------------------------------------------
     }
