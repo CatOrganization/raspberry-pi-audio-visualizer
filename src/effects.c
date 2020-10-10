@@ -14,13 +14,8 @@ double get_random_number(double min, double max)
 
 Color get_random_color(float saturation)
 {
-    Vector3 hsv;
-
-    hsv.x = get_random_number(0.0, 360);
-    hsv.y = saturation;
-    hsv.z = 1.0f;
-
-    return ColorFromHSV(hsv);
+    float hue = get_random_number(0.0, 360);
+    return ColorFromHSV(hue, saturation, 1.0f);
 }
 
 Firework *new_firework(int x, int y, Color base_color, double duration_coefficient)

@@ -96,7 +96,7 @@ void process_treble(LinkedList *firework_list, double treble_max)
 {
     firework_cooldown--;
 
-    if (firework_cooldown <= 0 && firework_list->size < 10 && treble_max - prev_treble_max > 0.02)
+    if (firework_cooldown <= 0 && firework_list->size < 30 && treble_max - prev_treble_max > 0.02)
     {
         int x = (int) ((double) rand() / RAND_MAX * screenWidth);
         int y = (int) ((double) rand() / RAND_MAX * screenHeight);
@@ -266,11 +266,11 @@ int main(int argc, char *argv[])
         process_bass(&wave_line, bass_max);
 
 
-        if (IsKeyDown(32) && firework_list.size < 10)
+        if (IsKeyDown(32) && firework_list.size < 50)
         {
             int x = (int) ((double) rand() / RAND_MAX * screenWidth);
             int y = (int) ((double) rand() / RAND_MAX * screenHeight);
-            linked_list_add(&firework_list, new_firework(x, y, get_random_color(1.0f), 1.0));
+            linked_list_add(&firework_list, new_firework(x, y, get_random_color(1.0f), 2.5f));
         }
         
         n++;
