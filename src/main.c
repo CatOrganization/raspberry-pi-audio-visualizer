@@ -5,6 +5,7 @@
 #include "filter.h"
 #include "effects.h"
 #include "linked_list.h"
+#include "visualization.h"
 
 const int screenWidth = 1600;
 const int screenHeight = 900;
@@ -94,92 +95,6 @@ int process_audio_frame(char b1, char b2)
     return i;
 }
 
-double prev_treble_max = 0;
-int firework_cooldown = 0;
-void process_treble(LinkedList *firework_list, double treble_max)
-{
-    firework_cooldown--;
-
-    if (firework_cooldown <= 0 && firework_list->size < 30 && treble_max - prev_treble_max > 0.02)
-    {
-        int x = (int) ((double) rand() / RAND_MAX * screenWidth);
-        int y = (int) ((double) rand() / RAND_MAX * screenHeight);
-        linked_list_add(firework_list, new_firework(x, y, get_random_color(1.0f), 1.0));
-        firework_cooldown = 5;
-    }
-}
-
-float wave_y = screenHeight;
-float wave_speed = 0;
-bool show_wave = false;
-void process_bass(WaveLine *wave_line, double bass_max)
-{
-    if (bass_max > 0.05)
-    {
-        show_wave = true;
-        wave_speed = -100;
-    }
-    else if (show_wave && wave_speed == 0)
-    {
-        show_wave = false;
-        wave_y = screenHeight;
-    }
-
-    if (wave_speed < 0)
-    {
-        set_wave_line_color(wave_line, (Color) {0, 82, 172, (char) ((wave_speed / -100.0) * 200)});
-        wave_y += wave_speed;
-        wave_speed += 10; 
-        if (wave_y < -100)
-        {
-            wave_y = screenHeight;
-        }
-    }
-}
-
-Color interpolate_color(Color start, Color end, float percent)
-{
-    int value = percent * 255;
-    if (value < 5) value = 0;
-        
-    return (Color) { 0, value, 0, 255};
-}
-
-void draw_sound_wave(Vector2 *line_point_buffer, double *values, int size, int baseline_y, int scale, Color color)
-{
-    for (int i = 0; i < size; i += 2)
-    {
-        int y = baseline_y + (values[i] * scale);
-        line_point_buffer[i/2].x = i*2;
-        line_point_buffer[i/2].y = y;
-    }
-
-    DrawLineStrip(line_point_buffer, size/2, color);
-}
-
-Color inverse_color(Color c) 
-{
-    return (Color) {0, 255 - c.g, 0, c.a};
-}
-
-int firework_list_update(void *data)
-{
-    if (!update_firework((Firework *)data))
-    {
-        // If update returns false, the firework is done. We should free it and delete it from the list
-        free(data);
-        return false;
-    }
-
-    return true;
-}
-
-int firework_list_draw(void *data)
-{
-    draw_firework((Firework *) data);
-    return true;
-}
-
 int main(int argc, char *argv[])
 {
     if (argc < 2)
@@ -191,10 +106,6 @@ int main(int argc, char *argv[])
     // Initialization
     //--------------------------------------------------------------------------------------
     InitWindow(screenWidth, screenHeight, "audio visualizer");
-
-    Shader wave_shader = LoadShader(0, TextFormat("resources/shaders/wave.fs", 100));
-    int screen_height_loc = GetShaderLocation(wave_shader, "screen_height");
-    SetShaderValue(wave_shader, screen_height_loc, &screenHeight, UNIFORM_INT);
 
     SetTargetFPS(30);
     //--------------------------------------------------------------------------------------
@@ -215,23 +126,20 @@ int main(int argc, char *argv[])
     int audio_buffer_frames = 800;
     char *raw_audio = malloc(audio_buffer_frames * snd_pcm_format_width(audio_format) / 8);
     double *audio_frames = malloc(sizeof(double) * audio_buffer_frames);
-    double *bass_filtered_audio_frames = malloc(sizeof(double) * audio_buffer_frames);
-    double *treble_filtered_audio_frames = malloc(sizeof(double) * audio_buffer_frames);
 
-    Vector2 *line_points = malloc(sizeof(Vector2) * audio_buffer_frames);
+    int num_visualizations = 2;
+    int curr_vis = 1;
+    Visualization visualizations[] = {
+        NewFireworksAndWavesVis(),
+        NewSoundWaveVis()
+    };
 
-    Color c = RAYWHITE;
-    float max_y = 0;
+    fprintf(stdout, "initializing visualizations\n");
 
-    LinkedList firework_list;
-    firework_list.head = NULL;
-    firework_list.size = 0;
-
-    linked_list_add(&firework_list, new_firework(200, 200, GREEN, 1.0));
-    
-    WaveLine wave_line = init_wave_line(wave_shader, "wave_", screenWidth, screenHeight); 
-    set_wave_line_intensity(&wave_line, 100);
-    set_wave_line_color(&wave_line, (Color) {0, 82, 172, 200});
+    for (int n = 0; n < num_visualizations; n++)
+    {
+        visualizations[n].init(screenWidth, screenHeight, audio_buffer_frames);
+    }
 
     // Main game loop
     while (!WindowShouldClose())    // Detect window close button or ESC key
@@ -252,37 +160,28 @@ int main(int argc, char *argv[])
             break;
         }
         
-        
-        max_y = -1;        
-            
         // Process audio values
         for (int i = 0; i < (2 * audio_buffer_frames) - 1; i += 2)
         {
             audio_frames[i/2] = process_audio_frame(raw_audio[i], raw_audio[i+1]) / 32000.0;
-            if (absf(audio_frames[i/2]) > max_y)
-            {
-                max_y = absf(audio_frames[i/2]);
-            }
         }
-            
-        c = interpolate_color(GREEN, BLUE, max_y);
-           
-        double bass_max = apply_linear_filter(LowPassBassFilter, audio_frames, &bass_filtered_audio_frames, audio_buffer_frames);
-        double treble_max = apply_linear_filter(HighPassTrebleFilter, audio_frames, &treble_filtered_audio_frames, audio_buffer_frames);
-
-        process_treble(&firework_list, treble_max);
-        process_bass(&wave_line, bass_max);
-
-
-        if (IsKeyDown(32) && firework_list.size < 50)
-        {
-            int x = (int) ((double) rand() / RAND_MAX * screenWidth);
-            int y = (int) ((double) rand() / RAND_MAX * screenHeight);
-            linked_list_add(&firework_list, new_firework(x, y, get_random_color(1.0f), 2.5f));
-        }
-            
         
-          // 'v' or 'd' toggles verbose/debug mode        
+
+        if (key_pressed == KEY_RIGHT || key_pressed == (int) 'n')
+        {
+            curr_vis++;
+            if (curr_vis >= num_visualizations) curr_vis = 0;
+        }
+
+        if (key_pressed == KEY_LEFT || key_pressed == (int) 'p')
+        {
+            curr_vis--;
+            if (curr_vis < 0) curr_vis = num_visualizations - 1;
+        }
+
+        visualizations[curr_vis].update(audio_frames);    
+        
+        // 'v' or 'd' toggles verbose/debug mode        
         if (key_pressed == 118 || key_pressed == 100)
         {
                 if (verbose_mode) 
@@ -294,7 +193,7 @@ int main(int argc, char *argv[])
                     verbose_mode=1;
                 }
         }
-        
+
         // only check temp once every 5 seconds     
         if (n % (30 * 5) == 0)
         {
@@ -302,37 +201,33 @@ int main(int argc, char *argv[])
         }
 
         n++;
-        sprintf(str, "fps: %d\nfireworks: %d\nbass_max: %f\ntreble: %f\n%s", GetFPS(), firework_list.size, bass_max, treble_max, cmd_output);
-        
-        linked_list_for_each(&firework_list, &firework_list_update);  
-        
+        sprintf(str, "fps: %d\nkey: %d\n%s", GetFPS(), key_pressed, cmd_output);
+                
         // Draw
         //----------------------------------------------------------------------------------
         BeginDrawing();
 
-            ClearBackground(c);
-
-            if (show_wave) 
-            {
-                draw_wave_line(&wave_line, wave_y);
-            }
-
-            draw_sound_wave(line_points, audio_frames, audio_buffer_frames, 450, screenHeight, inverse_color(c));
-            
-            linked_list_for_each(&firework_list, &firework_list_draw);
+            visualizations[curr_vis].draw(verbose_mode);
 
             if (verbose_mode) 
             {
                 DrawText(str, 0, 0, 20, RAYWHITE);
+
+                int vis_name_width = MeasureText(visualizations[curr_vis].name, 16);
+                DrawText(visualizations[curr_vis].name, screenWidth - vis_name_width - 10, screenHeight - 20, 16, RAYWHITE);
             }
-            
+
         EndDrawing();
         //----------------------------------------------------------------------------------
     }
 
     // De-Initialization
     //--------------------------------------------------------------------------------------
-    UnloadShader(wave_shader);
+    for (int n = 0; n < num_visualizations; n++)
+    {
+        visualizations[n].clean_up();
+    }
+
     CloseWindow();        // Close window and OpenGL context
     //--------------------------------------------------------------------------------------
 

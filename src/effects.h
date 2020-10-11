@@ -9,6 +9,9 @@
 // Gets a random color at the given saturation level
 Color get_random_color(float saturation);
 
+// Scales the color by the given scale factor
+Color scale_color(Color color, float scale_factor);
+
 // Gets a random number between the given min and max
 double get_random_number(double min, double max);
 
