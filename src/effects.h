@@ -9,6 +9,9 @@
 // Gets a random color at the given saturation level
 Color get_random_color(float saturation);
 
+// Gets a random number between the given min and max
+double get_random_number(double min, double max);
+
 typedef struct Firework {
     Vector2 particles[NUM_FIREWORK_PARTICLES];
     Vector2 particle_velocities[NUM_FIREWORK_PARTICLES];
