@@ -6,7 +6,6 @@
 #include "effects.h"
 #include "linked_list.h"
 
-
 const int screenWidth = 1600;
 const int screenHeight = 900;
 
@@ -75,20 +74,18 @@ snd_pcm_t *init_audio_stream(const char *hw_src)
 
 void run_command(const char *command, char *output, int output_len)
 {
-	FILE *fp = popen(command, "r");
-	fgets(output, output_len, fp);
-	pclose(fp);
+    FILE *fp = popen(command, "r");
+    fgets(output, output_len, fp);
+    pclose(fp);
 }
 
 int process_audio_frame(char b1, char b2)
 {
     static int max = 1 << 16;
-    
+
     int i = (int) b2;
     i = i << 8;
     i = i | b1;
-
-//return i - (1 << 8);
 
     if (i > max / 2) {
         return -(max - i);
@@ -188,7 +185,7 @@ int main(int argc, char *argv[])
     if (argc < 2)
     {
         fprintf(stderr, "You must provider an audio interface as the first arg.\n");
-        exit(1);	
+        exit(1);    
     }
 
     // Initialization
@@ -238,14 +235,15 @@ int main(int argc, char *argv[])
 
     // Main game loop
     while (!WindowShouldClose())    // Detect window close button or ESC key
-	 {
-	 	  int key_pressed = GetKeyPressed();	     
+    {
+        int key_pressed = GetKeyPressed();         
         // Update
         //----------------------------------------------------------------------------------
 
-	    long int pending_frames = snd_pcm_avail_update(capture_handle);
-    	if ((err = snd_pcm_forward(capture_handle, pending_frames)) < 0) {
-	        fprintf(stderr, "error skipping forward in stream (%s)\n", snd_strerror(err));
+        // Drop any buffered frames so we read the most recent data
+        long int pending_frames = snd_pcm_avail_update(capture_handle);
+        if ((err = snd_pcm_forward(capture_handle, pending_frames)) < 0) {
+            fprintf(stderr, "error skipping forward in stream (%s)\n", snd_strerror(err));
             break;
         }
 
@@ -282,24 +280,26 @@ int main(int argc, char *argv[])
             int y = (int) ((double) rand() / RAND_MAX * screenHeight);
             linked_list_add(&firework_list, new_firework(x, y, get_random_color(1.0f), 2.5f));
         }
-			
-		
-		  // 'v' or 'd' toggles verbose/debug mode        
+            
+        
+          // 'v' or 'd' toggles verbose/debug mode        
         if (key_pressed == 118 || key_pressed == 100)
         {
-        		if (verbose_mode) 
-        		{
-        			verbose_mode=0;
-        		} else {
-        			verbose_mode=1;
-				}
+                if (verbose_mode) 
+                {
+                    verbose_mode=0;
+                } 
+                else 
+                {
+                    verbose_mode=1;
+                }
         }
-   		
-   	  // only check temp once every 5 seconds     
+        
+        // only check temp once every 5 seconds     
         if (n % (30 * 5) == 0)
         {
-	        run_command("vcgencmd measure_temp", cmd_output, 128);
-        }        
+            run_command("vcgencmd measure_temp", cmd_output, 128);
+        }
 
         n++;
         sprintf(str, "fps: %d\nfireworks: %d\nbass_max: %f\ntreble: %f\n%s", GetFPS(), firework_list.size, bass_max, treble_max, cmd_output);
@@ -316,14 +316,16 @@ int main(int argc, char *argv[])
             {
                 draw_wave_line(&wave_line, wave_y);
             }
+
             draw_sound_wave(line_points, audio_frames, audio_buffer_frames, 450, screenHeight, inverse_color(c));
             
             linked_list_for_each(&firework_list, &firework_list_draw);
 
-				if (verbose_mode) 
-				{
-	            DrawText(str, 0, 0, 20, RAYWHITE);
-				}
+            if (verbose_mode) 
+            {
+                DrawText(str, 0, 0, 20, RAYWHITE);
+            }
+            
         EndDrawing();
         //----------------------------------------------------------------------------------
     }
