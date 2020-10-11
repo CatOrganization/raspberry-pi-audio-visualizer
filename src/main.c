@@ -127,11 +127,12 @@ int main(int argc, char *argv[])
     char *raw_audio = malloc(audio_buffer_frames * snd_pcm_format_width(audio_format) / 8);
     double *audio_frames = malloc(sizeof(double) * audio_buffer_frames);
 
-    int num_visualizations = 2;
-    int curr_vis = 1;
+    int num_visualizations = 3;
+    int curr_vis = 0;
     Visualization visualizations[] = {
         NewFireworksAndWavesVis(),
-        NewSoundWaveVis()
+        NewSoundWaveVis(),
+        NewDvdLogoVis()
     };
 
     fprintf(stdout, "initializing visualizations\n");

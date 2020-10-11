@@ -19,5 +19,6 @@ typedef struct Visualization {
 
 Visualization NewFireworksAndWavesVis();
 Visualization NewSoundWaveVis();
+Visualization NewDvdLogoVis();
 
 #endif
