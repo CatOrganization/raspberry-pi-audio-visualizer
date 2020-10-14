@@ -1,4 +1,5 @@
 #include <math.h>
+#include <stdlib.h>
 #include <stdio.h>
 
 #include "visualization.h"
@@ -13,6 +14,11 @@ void vis_dvd_logo_init(int screen_width, int screen_height, int audio_buffer_fra
 void vis_dvd_logo_update(double *audio_frames);
 void vis_dvd_logo_draw(bool verbose);
 void vis_dvd_logo_clean_up();
+
+const int vis_dvd_logo_num_colors = 16;
+const Color vis_dvd_logo_colors[] = {
+	RAYWHITE, GRAY, YELLOW, GOLD, ORANGE, PINK, RED, MAROON, GREEN, LIME, SKYBLUE, BLUE, PURPLE, VIOLET, BEIGE, MAGENTA
+};
 
 typedef struct VisDvdLogoMetadata {
     int screen_height;
@@ -165,14 +171,14 @@ void vis_dvd_logo_update(double *audio_frames)
     {
         vis_dvd_logo_metadata.logo_position.x = 0;
         vis_dvd_logo_metadata.logo_velocity.x = -vis_dvd_logo_metadata.logo_velocity.x;
-        vis_dvd_logo_metadata.logo_color = get_random_color(80);
+        vis_dvd_logo_metadata.logo_color = vis_dvd_logo_colors[(int) get_random_number(0, vis_dvd_logo_num_colors)];
         hit_x = true;
     }
     else if (vis_dvd_logo_metadata.logo_position.x >= vis_dvd_logo_metadata.logo_max_position.x)
     {
         vis_dvd_logo_metadata.logo_position.x = vis_dvd_logo_metadata.logo_max_position.x;
         vis_dvd_logo_metadata.logo_velocity.x = -vis_dvd_logo_metadata.logo_velocity.x;
-        vis_dvd_logo_metadata.logo_color = get_random_color(80);
+        vis_dvd_logo_metadata.logo_color = vis_dvd_logo_colors[(int) get_random_number(0, vis_dvd_logo_num_colors)];
         hit_x = true;
     }
 
@@ -180,14 +186,14 @@ void vis_dvd_logo_update(double *audio_frames)
     {
         vis_dvd_logo_metadata.logo_position.y = 0;
         vis_dvd_logo_metadata.logo_velocity.y = -vis_dvd_logo_metadata.logo_velocity.y;
-        vis_dvd_logo_metadata.logo_color = get_random_color(80);
+        vis_dvd_logo_metadata.logo_color = vis_dvd_logo_colors[(int) get_random_number(0, vis_dvd_logo_num_colors)];
         hit_y = true;
     }
     else if (vis_dvd_logo_metadata.logo_position.y >= vis_dvd_logo_metadata.logo_max_position.y)
     {
         vis_dvd_logo_metadata.logo_position.y = vis_dvd_logo_metadata.logo_max_position.y;
         vis_dvd_logo_metadata.logo_velocity.y = -vis_dvd_logo_metadata.logo_velocity.y;
-        vis_dvd_logo_metadata.logo_color = get_random_color(80);
+        vis_dvd_logo_metadata.logo_color = vis_dvd_logo_colors[(int) get_random_number(0, vis_dvd_logo_num_colors)];
         hit_y = true;
     }
 
@@ -233,10 +239,7 @@ void vis_dvd_logo_update(double *audio_frames)
         }
     }
 
-    // This formula increases the affect at lower values and tapers off towards max values.
-    max_y = pow(max_y - 1, 3) + 1;
     vis_dvd_logo_metadata.background_color = scale_color(vis_dvd_logo_metadata.logo_color, max_y * 0.9);
-
     vis_dvd_logo_metadata.frame_counter++;
 }
 

@@ -106,8 +106,9 @@ int main(int argc, char *argv[])
     // Initialization
     //--------------------------------------------------------------------------------------
     InitWindow(screenWidth, screenHeight, "audio visualizer");
-
-    SetTargetFPS(300);
+SetConfigFlags(FLAG_VSYNC_HINT);    
+	 
+    SetTargetFPS(30);
     //--------------------------------------------------------------------------------------
 
     HideCursor();
@@ -198,7 +199,7 @@ int main(int argc, char *argv[])
         // only check temp once every 5 seconds     
         if (n % (30 * 5) == 0)
         {
-            //run_command("vcgencmd measure_temp", cmd_output, 128);
+            run_command("vcgencmd measure_temp", cmd_output, 128);
         }
 
         n++;
