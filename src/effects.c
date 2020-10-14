@@ -23,6 +23,7 @@ Color scale_color(Color color, float scale_factor)
     output.r = scale_factor * color.r;
     output.g = scale_factor * color.g;
     output.b = scale_factor * color.b;
+    output.a = color.a;
 
     if (output.r < 5) output.r = 0;
     if (output.g < 5) output.g = 0;

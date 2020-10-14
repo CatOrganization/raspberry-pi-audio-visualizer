@@ -1,5 +1,6 @@
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "visualization.h"
 #include "effects.h"
@@ -9,16 +10,12 @@
 #define VIS_DVD_LOGO_WIDTH 270
 #define VIS_DVD_LOGO_HEIGHT 120
 
-void vis_dvd_logo_init(int screen_width, int screen_height, int audio_buffer_frames);
+void vis_dvd_logo_init();
 void vis_dvd_logo_update(double *audio_frames);
 void vis_dvd_logo_draw(bool verbose);
 void vis_dvd_logo_clean_up();
 
 typedef struct VisDvdLogoMetadata {
-    int screen_height;
-    int screen_width;
-    int audio_buffer_frames;
-
     Texture2D logo_texture;
     Vector2 logo_position;
     Vector2 logo_velocity;
@@ -109,12 +106,8 @@ int vis_dvd_logo_frames_till_next_corner()
     return frames_till_corner;
 }
 
-void vis_dvd_logo_init(int width, int height, int audio_frames)
+void vis_dvd_logo_init()
 {
-    vis_dvd_logo_metadata.screen_width = width;
-    vis_dvd_logo_metadata.screen_height = height;
-    vis_dvd_logo_metadata.audio_buffer_frames = audio_frames;
-
     vis_dvd_logo_metadata.logo_texture = LoadTexture("resources/images/dvd_logo.png");
 
     vis_dvd_logo_metadata.logo_position.x = 100;
@@ -125,8 +118,8 @@ void vis_dvd_logo_init(int width, int height, int audio_frames)
 
     vis_dvd_logo_metadata.logo_color = get_random_color(80);
 
-    vis_dvd_logo_metadata.logo_max_position.x = width - VIS_DVD_LOGO_WIDTH;
-    vis_dvd_logo_metadata.logo_max_position.y = height - VIS_DVD_LOGO_HEIGHT;
+    vis_dvd_logo_metadata.logo_max_position.x = vis_screen_width - VIS_DVD_LOGO_WIDTH;
+    vis_dvd_logo_metadata.logo_max_position.y = vis_screen_height - VIS_DVD_LOGO_HEIGHT;
 
     vis_dvd_logo_metadata.frames_till_corner = vis_dvd_logo_frames_till_next_corner();
     vis_dvd_logo_metadata.frame_counter = 1;
@@ -207,8 +200,8 @@ void vis_dvd_logo_update(double *audio_frames)
         int fireworks_to_add = (int) get_random_number(0, vis_dvd_logo_metadata.max_new_fireworks_per_frame);
         for (int n = 0; n < fireworks_to_add; n++)
         {
-            int x = (int) get_random_number(0, vis_dvd_logo_metadata.screen_width);
-            int y = (int) get_random_number(0, vis_dvd_logo_metadata.screen_height);
+            int x = (int) get_random_number(0, vis_screen_width);
+            int y = (int) get_random_number(0, vis_screen_height);
             Color color = get_random_color(1.0f);
             linked_list_add(&vis_dvd_logo_metadata.firework_list, new_firework(x, y, color, 1.0));
         }
@@ -225,7 +218,7 @@ void vis_dvd_logo_update(double *audio_frames)
 
     // Find max audio frame value to calculate background intensity
     double max_y = audio_frames[0];
-    for (int n = 1; n < vis_dvd_logo_metadata.audio_buffer_frames; n++)
+    for (int n = 1; n < vis_audio_buffer_frames; n++)
     {
         if (absf(audio_frames[n]) > max_y)
         {
@@ -255,16 +248,15 @@ void vis_dvd_logo_draw(bool verbose)
     ClearBackground(vis_dvd_logo_metadata.background_color);
     DrawTexture(vis_dvd_logo_metadata.logo_texture, vis_dvd_logo_metadata.logo_position.x, vis_dvd_logo_metadata.logo_position.y, vis_dvd_logo_metadata.logo_color);
 
+    // Draw the border lines that grow as we get closer to the next corner event
     double percent = vis_dvd_logo_metadata.frame_counter / (double) vis_dvd_logo_metadata.frames_till_corner;
-    int screen_width = vis_dvd_logo_metadata.screen_width;
-    int screen_height = vis_dvd_logo_metadata.screen_height;
     Color color = vis_dvd_logo_metadata.logo_color;
     color.a = 200;
 
-    DrawLineEx((Vector2) { 1, screen_height - 1 }, (Vector2) { percent * screen_width, screen_height - 1 }, 2, color);
-    DrawLineEx((Vector2) { screen_width - 1, screen_height - 1 }, (Vector2) { screen_width - 1, (1 - percent) * screen_height }, 2, color);
-    DrawLineEx((Vector2) { screen_width - 1, 1 }, (Vector2) { (1 - percent) * screen_width, 1 }, 2, color);
-    DrawLineEx((Vector2) { 1, 1 }, (Vector2) { 1, percent * screen_height }, 2, color);
+    DrawLineEx((Vector2) { 1, vis_screen_height - 1 }, (Vector2) { percent * vis_screen_width, vis_screen_height - 1 }, 2, color);
+    DrawLineEx((Vector2) { vis_screen_width - 1, vis_screen_height - 1 }, (Vector2) { vis_screen_width - 1, (1 - percent) * vis_screen_height }, 2, color);
+    DrawLineEx((Vector2) { vis_screen_width - 1, 1 }, (Vector2) { (1 - percent) * vis_screen_width, 1 }, 2, color);
+    DrawLineEx((Vector2) { 1, 1 }, (Vector2) { 1, percent * vis_screen_height }, 2, color);
 
     linked_list_for_each(&vis_dvd_logo_metadata.firework_list, &vis_dvd_logo_firework_list_draw);
 

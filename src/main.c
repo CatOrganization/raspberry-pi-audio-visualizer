@@ -107,7 +107,7 @@ int main(int argc, char *argv[])
     //--------------------------------------------------------------------------------------
     InitWindow(screenWidth, screenHeight, "audio visualizer");
 
-    SetTargetFPS(300);
+    SetTargetFPS(30);
     //--------------------------------------------------------------------------------------
 
     HideCursor();
@@ -127,15 +127,20 @@ int main(int argc, char *argv[])
     char *raw_audio = malloc(audio_buffer_frames * snd_pcm_format_width(audio_format) / 8);
     double *audio_frames = malloc(sizeof(double) * audio_buffer_frames);
 
-    int num_visualizations = 3;
+    int num_visualizations = 4;
     int curr_vis = 0;
     Visualization visualizations[] = {
         NewFireworksAndWavesVis(),
         NewSoundWaveVis(),
-        NewDvdLogoVis()
+        NewDvdLogoVis(),
+        NewTimeDomainVis()
     };
 
     fprintf(stdout, "initializing visualizations\n");
+
+    vis_screen_width = screenWidth;
+    vis_screen_height = screenHeight;
+    vis_audio_buffer_frames = audio_buffer_frames;
 
     for (int n = 0; n < num_visualizations; n++)
     {
