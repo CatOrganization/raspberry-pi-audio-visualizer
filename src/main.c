@@ -106,12 +106,7 @@ int main(int argc, char *argv[])
     // Initialization
     //--------------------------------------------------------------------------------------
     InitWindow(screenWidth, screenHeight, "audio visualizer");
-<<<<<<< HEAD
-SetConfigFlags(FLAG_VSYNC_HINT);    
-	 
-=======
-
->>>>>>> fece985b85f67af9d7e842b8e26380af32bd7054
+	 SetConfigFlags(FLAG_VSYNC_HINT);
     SetTargetFPS(30);
     //--------------------------------------------------------------------------------------
 
