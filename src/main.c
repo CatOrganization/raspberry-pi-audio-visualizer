@@ -106,8 +106,12 @@ int main(int argc, char *argv[])
     // Initialization
     //--------------------------------------------------------------------------------------
     InitWindow(screenWidth, screenHeight, "audio visualizer");
+<<<<<<< HEAD
 SetConfigFlags(FLAG_VSYNC_HINT);    
 	 
+=======
+
+>>>>>>> fece985b85f67af9d7e842b8e26380af32bd7054
     SetTargetFPS(30);
     //--------------------------------------------------------------------------------------
 
@@ -128,15 +132,20 @@ SetConfigFlags(FLAG_VSYNC_HINT);
     char *raw_audio = malloc(audio_buffer_frames * snd_pcm_format_width(audio_format) / 8);
     double *audio_frames = malloc(sizeof(double) * audio_buffer_frames);
 
-    int num_visualizations = 3;
+    int num_visualizations = 4;
     int curr_vis = 0;
     Visualization visualizations[] = {
         NewFireworksAndWavesVis(),
         NewSoundWaveVis(),
-        NewDvdLogoVis()
+        NewDvdLogoVis(),
+        NewTimeDomainVis()
     };
 
     fprintf(stdout, "initializing visualizations\n");
+
+    vis_screen_width = screenWidth;
+    vis_screen_height = screenHeight;
+    vis_audio_buffer_frames = audio_buffer_frames;
 
     for (int n = 0; n < num_visualizations; n++)
     {

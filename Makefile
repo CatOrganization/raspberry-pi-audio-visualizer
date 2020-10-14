@@ -360,7 +360,7 @@ endif
 LDLIBS += -lasound
 
 # Define all source files required
-PROJECT_SOURCE_FILES ?= src/main.c src/filter.c src/effects.c src/linked_list.c src/firework.c src/wave_line.c src/vis_fireworks_and_waves.c src/vis_sound_wave.c src/vis_dvd_logo.c
+PROJECT_SOURCE_FILES ?= src/main.c src/filter.c src/effects.c src/linked_list.c src/firework.c src/wave_line.c src/vis_fireworks_and_waves.c src/vis_sound_wave.c src/vis_dvd_logo.c src/vis_time_domain.c
 
 # Define all object files from source files
 OBJS = $(patsubst %.c, %.o, $(PROJECT_SOURCE_FILES))
