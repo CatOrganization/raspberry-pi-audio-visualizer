@@ -272,6 +272,8 @@ ifeq ($(PLATFORM),PLATFORM_DESKTOP)
     endif
 endif
 
+INCLUDE_PATHS += -I./kissfft
+
 # Define library paths containing required libs.
 LDFLAGS = -L. -L$(RAYLIB_RELEASE_PATH) -L$(RAYLIB_PATH)/src
 
@@ -360,7 +362,7 @@ endif
 LDLIBS += -lasound -L./kissfft -l:libkissfft.a
 
 # Define all source files required
-PROJECT_SOURCE_FILES ?= src/main.c src/filter.c src/effects.c src/linked_list.c src/firework.c src/wave_line.c src/vis_fireworks_and_waves.c src/vis_sound_wave.c src/vis_dvd_logo.c src/vis_time_domain.c
+PROJECT_SOURCE_FILES ?= src/main.c src/filter.c src/effects.c src/linked_list.c src/firework.c src/wave_line.c src/vis_fireworks_and_waves.c src/vis_sound_wave.c src/vis_dvd_logo.c src/vis_time_domain.c src/vis_frequency_domain.c
 
 # Define all object files from source files
 OBJS = $(patsubst %.c, %.o, $(PROJECT_SOURCE_FILES))

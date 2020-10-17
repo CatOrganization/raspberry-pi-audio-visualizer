@@ -128,13 +128,14 @@ int main(int argc, char *argv[])
     char *raw_audio = malloc(audio_buffer_frames * snd_pcm_format_width(audio_format) / 8);
     double *audio_frames = malloc(sizeof(double) * audio_buffer_frames);
 
-    int num_visualizations = 4;
+    int num_visualizations = 5;
     int curr_vis = 0;
     Visualization visualizations[] = {
         NewFireworksAndWavesVis(),
         NewSoundWaveVis(),
         NewDvdLogoVis(),
-        NewTimeDomainVis()
+        NewTimeDomainVis(),
+        NewFrequencyDomainVis()
     };
 
     fprintf(stdout, "initializing visualizations\n");
@@ -145,6 +146,7 @@ int main(int argc, char *argv[])
 
     for (int n = 0; n < num_visualizations; n++)
     {
+        fprintf(stdout, "init '%s'\n", visualizations[n].name);
         visualizations[n].init(screenWidth, screenHeight, audio_buffer_frames);
     }
 
