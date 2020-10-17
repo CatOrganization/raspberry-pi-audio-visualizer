@@ -8,59 +8,55 @@
 #include "filter.h"
 #include "linked_list.h"
 
-#define VIS_DVD_LOGO_WIDTH 270
-#define VIS_DVD_LOGO_HEIGHT 120
+#define DVD_LOGO_WIDTH 270
+#define DVD_LOGO_HEIGHT 120
 
-void vis_dvd_logo_init();
-void vis_dvd_logo_update(double *audio_frames);
-void vis_dvd_logo_draw(bool verbose);
-void vis_dvd_logo_clean_up();
+static void init();
+static void update(double *audio_frames);
+static void draw(bool verbose);
+static void clean_up();
 
-const int vis_dvd_logo_num_colors = 16;
-const Color vis_dvd_logo_colors[] = {
+static const int num_colors = 16;
+static const Color colors[] = {
 	RAYWHITE, GRAY, YELLOW, GOLD, ORANGE, PINK, RED, MAROON, GREEN, LIME, SKYBLUE, BLUE, PURPLE, VIOLET, BEIGE, MAGENTA
 };
 
-typedef struct VisDvdLogoMetadata {
-    Texture2D logo_texture;
-    Vector2 logo_position;
-    Vector2 logo_velocity;
-    Color logo_color;
+static Texture2D logo_texture;
+static Vector2 logo_position;
+static Vector2 logo_velocity;
+static Color logo_color;
 
-    Vector2 logo_max_position;
+static Vector2 logo_max_position;
 
-    Color background_color;
+static Color background_color;
 
-    int frames_till_corner;
-    int frame_counter;
+static int frames_till_corner;
+static int frame_counter;
 
-    LinkedList firework_list;
-    int pending_fireworks;
-    int max_new_fireworks_per_frame;
-} VisDvdLogoMetadata;
-
-VisDvdLogoMetadata vis_dvd_logo_metadata;
+static LinkedList firework_list;
+static int pending_fireworks;
+static int max_new_fireworks_per_frame;
 
 Visualization NewDvdLogoVis()
 {
     Visualization vis;
     vis.name = "dvd logo";
-    vis.init = vis_dvd_logo_init;
-    vis.update = vis_dvd_logo_update;
-    vis.draw = vis_dvd_logo_draw;
-    vis.clean_up = vis_dvd_logo_clean_up;
+    vis.init = init;
+    vis.update = update;
+    vis.draw = draw;
+    vis.clean_up = clean_up;
 
     return vis;
 }
 
 // Calculates how many frames until the dvd logo will hit a corner
-int vis_dvd_logo_frames_till_next_corner()
+static int frames_till_next_corner()
 {
-    int abs_velocity = absf(vis_dvd_logo_metadata.logo_velocity.x);
+    int abs_velocity = absf(logo_velocity.x);
     
-    Vector2 vel = vis_dvd_logo_metadata.logo_velocity;
-    Vector2 pos = vis_dvd_logo_metadata.logo_position;
-    Vector2 max_pos = vis_dvd_logo_metadata.logo_max_position;
+    Vector2 vel = logo_velocity;
+    Vector2 pos = logo_position;
+    Vector2 max_pos = logo_max_position;
 
     int num_attempts = 500;
     int frames_till_corner = 0;
@@ -112,34 +108,34 @@ int vis_dvd_logo_frames_till_next_corner()
     return frames_till_corner;
 }
 
-void vis_dvd_logo_init()
+static void init()
 {
-    vis_dvd_logo_metadata.logo_texture = LoadTexture("resources/images/dvd_logo.png");
+    logo_texture = LoadTexture("resources/images/dvd_logo.png");
 
-    vis_dvd_logo_metadata.logo_position.x = 100;
-    vis_dvd_logo_metadata.logo_position.y = 100;
+    logo_position.x = 100;
+    logo_position.y = 100;
 
-    vis_dvd_logo_metadata.logo_velocity.x = -10;
-    vis_dvd_logo_metadata.logo_velocity.y = -10;
+    logo_velocity.x = -10;
+    logo_velocity.y = -10;
 
-    vis_dvd_logo_metadata.logo_color = get_random_color(80);
+    logo_color = get_random_color(80);
 
-    vis_dvd_logo_metadata.logo_max_position.x = vis_screen_width - VIS_DVD_LOGO_WIDTH;
-    vis_dvd_logo_metadata.logo_max_position.y = vis_screen_height - VIS_DVD_LOGO_HEIGHT;
+    logo_max_position.x = vis_screen_width - DVD_LOGO_WIDTH;
+    logo_max_position.y = vis_screen_height - DVD_LOGO_HEIGHT;
 
-    vis_dvd_logo_metadata.frames_till_corner = vis_dvd_logo_frames_till_next_corner();
-    vis_dvd_logo_metadata.frame_counter = 1;
+    frames_till_corner = frames_till_next_corner();
+    frame_counter = 1;
 
-    vis_dvd_logo_metadata.firework_list.head = NULL;
-    vis_dvd_logo_metadata.firework_list.size = 0;
-    vis_dvd_logo_metadata.pending_fireworks = 0;
+    firework_list.head = NULL;
+    firework_list.size = 0;
+    pending_fireworks = 0;
 }
 
 /**************************************************/
 /*               Update Functions                 */
 /**************************************************/
 
-int vis_dvd_logo_firework_list_update(void *data)
+static int firework_list_update(void *data)
 {
     if (!update_firework((Firework *)data))
     {
@@ -151,76 +147,76 @@ int vis_dvd_logo_firework_list_update(void *data)
     return true;
 }
 
-void vis_dvd_logo_update(double *audio_frames)
+static void update(double *audio_frames)
 {
     // Update the logo position
-    vis_dvd_logo_metadata.logo_position.x += vis_dvd_logo_metadata.logo_velocity.x;
-    vis_dvd_logo_metadata.logo_position.y += vis_dvd_logo_metadata.logo_velocity.y;
+    logo_position.x += logo_velocity.x;
+    logo_position.y += logo_velocity.y;
     
     bool hit_x = false;
     bool hit_y = false;
 
-    if (vis_dvd_logo_metadata.logo_position.x <= 0)
+    if (logo_position.x <= 0)
     {
-        vis_dvd_logo_metadata.logo_position.x = 0;
-        vis_dvd_logo_metadata.logo_velocity.x = -vis_dvd_logo_metadata.logo_velocity.x;
-        vis_dvd_logo_metadata.logo_color = vis_dvd_logo_colors[(int) get_random_number(0, vis_dvd_logo_num_colors)];
+        logo_position.x = 0;
+        logo_velocity.x = -logo_velocity.x;
+        logo_color = colors[(int) get_random_number(0, num_colors)];
         hit_x = true;
     }
-    else if (vis_dvd_logo_metadata.logo_position.x >= vis_dvd_logo_metadata.logo_max_position.x)
+    else if (logo_position.x >= logo_max_position.x)
     {
-        vis_dvd_logo_metadata.logo_position.x = vis_dvd_logo_metadata.logo_max_position.x;
-        vis_dvd_logo_metadata.logo_velocity.x = -vis_dvd_logo_metadata.logo_velocity.x;
-        vis_dvd_logo_metadata.logo_color = vis_dvd_logo_colors[(int) get_random_number(0, vis_dvd_logo_num_colors)];
+        logo_position.x = logo_max_position.x;
+        logo_velocity.x = -logo_velocity.x;
+        logo_color = colors[(int) get_random_number(0, num_colors)];
         hit_x = true;
     }
 
-    if (vis_dvd_logo_metadata.logo_position.y <= 0)
+    if (logo_position.y <= 0)
     {
-        vis_dvd_logo_metadata.logo_position.y = 0;
-        vis_dvd_logo_metadata.logo_velocity.y = -vis_dvd_logo_metadata.logo_velocity.y;
-        vis_dvd_logo_metadata.logo_color = vis_dvd_logo_colors[(int) get_random_number(0, vis_dvd_logo_num_colors)];
+        logo_position.y = 0;
+        logo_velocity.y = -logo_velocity.y;
+        logo_color = colors[(int) get_random_number(0, num_colors)];
         hit_y = true;
     }
-    else if (vis_dvd_logo_metadata.logo_position.y >= vis_dvd_logo_metadata.logo_max_position.y)
+    else if (logo_position.y >= logo_max_position.y)
     {
-        vis_dvd_logo_metadata.logo_position.y = vis_dvd_logo_metadata.logo_max_position.y;
-        vis_dvd_logo_metadata.logo_velocity.y = -vis_dvd_logo_metadata.logo_velocity.y;
-        vis_dvd_logo_metadata.logo_color = vis_dvd_logo_colors[(int) get_random_number(0, vis_dvd_logo_num_colors)];
+        logo_position.y = logo_max_position.y;
+        logo_velocity.y = -logo_velocity.y;
+        logo_color = colors[(int) get_random_number(0, num_colors)];
         hit_y = true;
     }
 
     if (hit_x && hit_y)
     {
-        fprintf(stdout, "HIT EM BOTH!!!!!! at %d (expected %d)\n", vis_dvd_logo_metadata.frame_counter, vis_dvd_logo_metadata.frames_till_corner);
-        vis_dvd_logo_metadata.frames_till_corner = vis_dvd_logo_frames_till_next_corner();
-        vis_dvd_logo_metadata.frame_counter = 0;
+        fprintf(stdout, "HIT EM BOTH!!!!!! at %d (expected %d)\n", frame_counter, frames_till_corner);
+        frames_till_corner = frames_till_next_corner();
+        frame_counter = 0;
 
-        vis_dvd_logo_metadata.pending_fireworks = 75;
-        vis_dvd_logo_metadata.max_new_fireworks_per_frame = 15;
+        pending_fireworks = 75;
+        max_new_fireworks_per_frame = 15;
     }
 
     // Add fireworks if any are pending
-    if (vis_dvd_logo_metadata.pending_fireworks > 0 && vis_dvd_logo_metadata.frame_counter % 3 == 0)
+    if (pending_fireworks > 0 && frame_counter % 3 == 0)
     {
-        int fireworks_to_add = (int) get_random_number(0, vis_dvd_logo_metadata.max_new_fireworks_per_frame);
+        int fireworks_to_add = (int) get_random_number(0, max_new_fireworks_per_frame);
         for (int n = 0; n < fireworks_to_add; n++)
         {
             int x = (int) get_random_number(0, vis_screen_width);
             int y = (int) get_random_number(0, vis_screen_height);
             Color color = get_random_color(1.0f);
-            linked_list_add(&vis_dvd_logo_metadata.firework_list, new_firework(x, y, color, 1.0));
+            linked_list_add(&firework_list, new_firework(x, y, color, 1.0));
         }
 
-        vis_dvd_logo_metadata.pending_fireworks -= fireworks_to_add;
-        vis_dvd_logo_metadata.max_new_fireworks_per_frame *= 0.9;
-        if (vis_dvd_logo_metadata.max_new_fireworks_per_frame < 3)
+        pending_fireworks -= fireworks_to_add;
+        max_new_fireworks_per_frame *= 0.9;
+        if (max_new_fireworks_per_frame < 3)
         {
-            vis_dvd_logo_metadata.max_new_fireworks_per_frame = 3;
+            max_new_fireworks_per_frame = 3;
         }
     }
 
-    linked_list_for_each(&vis_dvd_logo_metadata.firework_list, &vis_dvd_logo_firework_list_update);
+    linked_list_for_each(&firework_list, &firework_list_update);
 
     // Find max audio frame value to calculate background intensity
     double max_y = audio_frames[0];
@@ -232,28 +228,28 @@ void vis_dvd_logo_update(double *audio_frames)
         }
     }
 
-    vis_dvd_logo_metadata.background_color = scale_color(vis_dvd_logo_metadata.logo_color, max_y * 0.9);
-    vis_dvd_logo_metadata.frame_counter++;
+    background_color = scale_color(logo_color, max_y * 0.9);
+    frame_counter++;
 }
 
 /**************************************************/
 /*                 Draw Functions                 */
 /**************************************************/
 
-int vis_dvd_logo_firework_list_draw(void *data)
+static int firework_list_draw(void *data)
 {
     draw_firework((Firework *) data);
     return true;
 }
 
-void vis_dvd_logo_draw(bool verbose)
+static void draw(bool verbose)
 {
-    ClearBackground(vis_dvd_logo_metadata.background_color);
-    DrawTexture(vis_dvd_logo_metadata.logo_texture, vis_dvd_logo_metadata.logo_position.x, vis_dvd_logo_metadata.logo_position.y, vis_dvd_logo_metadata.logo_color);
+    ClearBackground(background_color);
+    DrawTexture(logo_texture, logo_position.x, logo_position.y, logo_color);
 
     // Draw the border lines that grow as we get closer to the next corner event
-    double percent = vis_dvd_logo_metadata.frame_counter / (double) vis_dvd_logo_metadata.frames_till_corner;
-    Color color = vis_dvd_logo_metadata.logo_color;
+    double percent = frame_counter / (double) frames_till_corner;
+    Color color = logo_color;
     color.a = 200;
 
     DrawLineEx((Vector2) { 1, vis_screen_height - 1 }, (Vector2) { percent * vis_screen_width, vis_screen_height - 1 }, 2, color);
@@ -261,17 +257,17 @@ void vis_dvd_logo_draw(bool verbose)
     DrawLineEx((Vector2) { vis_screen_width - 1, 1 }, (Vector2) { (1 - percent) * vis_screen_width, 1 }, 2, color);
     DrawLineEx((Vector2) { 1, 1 }, (Vector2) { 1, percent * vis_screen_height }, 2, color);
 
-    linked_list_for_each(&vis_dvd_logo_metadata.firework_list, &vis_dvd_logo_firework_list_draw);
+    linked_list_for_each(&firework_list, &firework_list_draw);
 
     if (verbose)
     {
         char text[128];
-        sprintf(text, "%d\n%d", vis_dvd_logo_metadata.frame_counter, vis_dvd_logo_metadata.frames_till_corner);
+        sprintf(text, "%d\n%d", frame_counter, frames_till_corner);
         DrawText(text, 0, 500, 20, RAYWHITE);
     }
 }
 
-void vis_dvd_logo_clean_up()
+static void clean_up()
 {
-    UnloadTexture(vis_dvd_logo_metadata.logo_texture);
+    UnloadTexture(logo_texture);
 }

@@ -5,64 +5,60 @@
 #include "effects.h"
 #include "filter.h"
 
-void vis_fireworks_and_waves_init();
-void vis_fireworks_and_waves_update(double *audio_frames);
-void vis_fireworks_and_waves_draw(bool verbose);
-void vis_fireworks_and_waves_clean_up();
+static void init();
+static void update(double *audio_frames);
+static void draw(bool verbose);
+static void clean_up();
 
-typedef struct VisFireworksAndWavesMetadata {
-    double *bass_filtered_audio_frames;
-    double *treble_filtered_audio_frames;
+static double *bass_filtered_audio_frames;
+static double *treble_filtered_audio_frames;
 
-    Vector2 *sound_wave_line_points;
-    Color background_color;
+static Vector2 *sound_wave_line_points;
+static Color background_color;
 
-    LinkedList firework_list;
+static LinkedList firework_list;
 
-    Shader wave_shader;
-    int screen_height_shader_loc;
+static Shader wave_shader;
+static int screen_height_shader_loc;
 
-    WaveLine wave_line;
+static WaveLine wave_line;
 
-    double prev_treble_max;
-    int firework_cooldown;
+static double prev_treble_max;
+static int firework_cooldown;
 
-    float wave_y;
-    float wave_speed;
-    bool show_wave;
-} VisFireworksAndWavesMetadata;
-
-VisFireworksAndWavesMetadata vis_fireworks_and_waves_metadata;
+static float wave_y;
+static float wave_speed;
+static bool show_wave;
 
 Visualization NewFireworksAndWavesVis()
 {
     Visualization vis;
     vis.name = "fireworks and waves";
-    vis.init = vis_fireworks_and_waves_init;
-    vis.update = vis_fireworks_and_waves_update;
-    vis.draw = vis_fireworks_and_waves_draw;
-    vis.clean_up = vis_fireworks_and_waves_clean_up;
+    vis.init = init;
+    vis.update = update;
+    vis.draw = draw;
+    vis.clean_up = clean_up;
 
     return vis;
 }
 
-void vis_fireworks_and_waves_init() 
+static void init() 
 {
-    vis_fireworks_and_waves_metadata.bass_filtered_audio_frames = malloc(sizeof(double) * vis_audio_buffer_frames);
-    vis_fireworks_and_waves_metadata.treble_filtered_audio_frames = malloc(sizeof(double) * vis_audio_buffer_frames);
+    bass_filtered_audio_frames = malloc(sizeof(double) * vis_audio_buffer_frames);
+    treble_filtered_audio_frames = malloc(sizeof(double) * vis_audio_buffer_frames);
 
-    vis_fireworks_and_waves_metadata.sound_wave_line_points = malloc(sizeof(Vector2) * vis_audio_buffer_frames);
+    sound_wave_line_points = malloc(sizeof(Vector2) * vis_audio_buffer_frames);
 
-    vis_fireworks_and_waves_metadata.firework_list.head = NULL;
-    vis_fireworks_and_waves_metadata.firework_list.size = 0;
+    firework_list.head = NULL;
+    firework_list.size = 0;
 
-    vis_fireworks_and_waves_metadata.wave_shader = LoadShader(0, TextFormat("resources/shaders/wave.fs", 100));
-    vis_fireworks_and_waves_metadata.screen_height_shader_loc = GetShaderLocation(vis_fireworks_and_waves_metadata.wave_shader, "screen_height");
-    SetShaderValue(vis_fireworks_and_waves_metadata.wave_shader, vis_fireworks_and_waves_metadata.screen_height_shader_loc, &vis_screen_height, UNIFORM_INT);
+    wave_shader = LoadShader(0, TextFormat("resources/shaders/wave.fs", 100));
+    screen_height_shader_loc = GetShaderLocation(wave_shader, "screen_height");
+    SetShaderValue(wave_shader, screen_height_shader_loc, &vis_screen_height, UNIFORM_INT);
 
-    vis_fireworks_and_waves_metadata.wave_line = init_wave_line(vis_fireworks_and_waves_metadata.wave_shader, "wave_", vis_screen_width, vis_screen_height);
-    set_wave_line_intensity(&vis_fireworks_and_waves_metadata.wave_line, 100);
-    set_wave_line_color(&vis_fireworks_and_waves_metadata.wave_line, (Color) {0, 82, 172, 200});
+    wave_line = init_wave_line(wave_shader, "wave_", vis_screen_width, vis_screen_height);
+    set_wave_line_intensity(&wave_line, 100);
+    set_wave_line_color(&wave_line, (Color) {0, 82, 172, 200});
 }
 
 /**************************************************/
@@ -70,45 +66,45 @@ void vis_fireworks_and_waves_init()
 /**************************************************/
 
 
-void vis_fireworks_and_waves_process_treble(LinkedList *firework_list, double treble_max)
+static void process_treble(LinkedList *firework_list, double treble_max)
 {
-    vis_fireworks_and_waves_metadata.firework_cooldown--;
+    firework_cooldown--;
 
-    if (vis_fireworks_and_waves_metadata.firework_cooldown <= 0 && vis_fireworks_and_waves_metadata.firework_list.size < 30 && treble_max - vis_fireworks_and_waves_metadata.prev_treble_max > 0.02)
+    if (firework_cooldown <= 0 && firework_list->size < 30 && treble_max - prev_treble_max > 0.02)
     {
         int x = (int) ((double) rand() / RAND_MAX * vis_screen_width);
         int y = (int) ((double) rand() / RAND_MAX * vis_screen_height);
-        linked_list_add(&vis_fireworks_and_waves_metadata.firework_list, new_firework(x, y, get_random_color(1.0f), 1.0));
-        vis_fireworks_and_waves_metadata.firework_cooldown = 5;
+        linked_list_add(firework_list, new_firework(x, y, get_random_color(1.0f), 1.0));
+        firework_cooldown = 5;
     }
 }
 
-void vis_fireworks_and_waves_process_bass(WaveLine *wave_line, double bass_max)
+static void process_bass(WaveLine *wave_line, double bass_max)
 {
     if (bass_max > 0.05)
     {
-        vis_fireworks_and_waves_metadata.show_wave = true;
-        vis_fireworks_and_waves_metadata.wave_speed = -100;
+        show_wave = true;
+        wave_speed = -100;
     }
-    else if (vis_fireworks_and_waves_metadata.show_wave && vis_fireworks_and_waves_metadata.wave_speed == 0)
+    else if (show_wave && wave_speed == 0)
     {
-        vis_fireworks_and_waves_metadata.show_wave = false;
-        vis_fireworks_and_waves_metadata.wave_y = vis_screen_height;
+        show_wave = false;
+        wave_y = vis_screen_height;
     }
 
-    if (vis_fireworks_and_waves_metadata.wave_speed < 0)
+    if (wave_speed < 0)
     {
-        set_wave_line_color(&vis_fireworks_and_waves_metadata.wave_line, (Color) {0, 82, 172, (char) ((vis_fireworks_and_waves_metadata.wave_speed / -100.0) * 200)});
-        vis_fireworks_and_waves_metadata.wave_y += vis_fireworks_and_waves_metadata.wave_speed;
-        vis_fireworks_and_waves_metadata.wave_speed += 10; 
-        if (vis_fireworks_and_waves_metadata.wave_y < -100)
+        set_wave_line_color(wave_line, (Color) {0, 82, 172, (char) ((wave_speed / -100.0) * 200)});
+        wave_y += wave_speed;
+        wave_speed += 10; 
+        if (wave_y < -100)
         {
-            vis_fireworks_and_waves_metadata.wave_y = vis_screen_height;
+            wave_y = vis_screen_height;
         }
     }
 }
 
-int vis_fireworks_and_waves_firework_list_update(void *data)
+static int firework_list_update(void *data)
 {
     if (!update_firework((Firework *)data))
     {
@@ -120,17 +116,17 @@ int vis_fireworks_and_waves_firework_list_update(void *data)
     return true;
 }
 
-void vis_fireworks_and_waves_calculate_sound_wave_line_points(double *audio_frames, int baseline_y, float scale)
+static void calculate_sound_wave_line_points(double *audio_frames, int baseline_y, float scale)
 {
     float horizontal_scale = vis_screen_width / vis_audio_buffer_frames;
     for (int n = 0; n < vis_audio_buffer_frames; n++)
     {
-        vis_fireworks_and_waves_metadata.sound_wave_line_points[n].x = n * horizontal_scale;
-        vis_fireworks_and_waves_metadata.sound_wave_line_points[n].y = baseline_y + (audio_frames[n] * scale);
+        sound_wave_line_points[n].x = n * horizontal_scale;
+        sound_wave_line_points[n].y = baseline_y + (audio_frames[n] * scale);
     }
 }
 
-void vis_fireworks_and_waves_update(double *audio_frames)
+static void update(double *audio_frames)
 {
     // Find max audio frame value
     double max_y = audio_frames[0];
@@ -143,26 +139,26 @@ void vis_fireworks_and_waves_update(double *audio_frames)
     }
 
     // Calculate background color
-    vis_fireworks_and_waves_metadata.background_color = scale_color(GREEN, max_y);
+    background_color = scale_color(GREEN, max_y);
 
-    vis_fireworks_and_waves_calculate_sound_wave_line_points(audio_frames, vis_screen_height / 2, vis_screen_height);
+    calculate_sound_wave_line_points(audio_frames, vis_screen_height / 2, vis_screen_height);
 
     // Filter and process bass + treble
-    double bass_max = apply_linear_filter(LowPassBassFilter, audio_frames, &vis_fireworks_and_waves_metadata.bass_filtered_audio_frames, vis_audio_buffer_frames);
-    double treble_max = apply_linear_filter(HighPassTrebleFilter, audio_frames, &vis_fireworks_and_waves_metadata.treble_filtered_audio_frames, vis_audio_buffer_frames);
+    double bass_max = apply_linear_filter(LowPassBassFilter, audio_frames, &bass_filtered_audio_frames, vis_audio_buffer_frames);
+    double treble_max = apply_linear_filter(HighPassTrebleFilter, audio_frames, &treble_filtered_audio_frames, vis_audio_buffer_frames);
 
-    vis_fireworks_and_waves_process_treble(&vis_fireworks_and_waves_metadata.firework_list, treble_max);
-    vis_fireworks_and_waves_process_bass(&vis_fireworks_and_waves_metadata.wave_line, bass_max);
+    process_treble(&firework_list, treble_max);
+    process_bass(&wave_line, bass_max);
 
     // Update fireworks
-    linked_list_for_each(&vis_fireworks_and_waves_metadata.firework_list, &vis_fireworks_and_waves_firework_list_update);
+    linked_list_for_each(&firework_list, &firework_list_update);
 
     // Extra fireworks for flair
-    if (IsKeyDown(32) && vis_fireworks_and_waves_metadata.firework_list.size < 50)
+    if (IsKeyDown(32) && firework_list.size < 50)
     {
         int x = (int) ((double) rand() / RAND_MAX * vis_screen_width);
         int y = (int) ((double) rand() / RAND_MAX * vis_screen_height);
-        linked_list_add(&vis_fireworks_and_waves_metadata.firework_list, new_firework(x, y, get_random_color(1.0f), 2.5f));
+        linked_list_add(&firework_list, new_firework(x, y, get_random_color(1.0f), 2.5f));
     }
 }
 
@@ -171,37 +167,37 @@ void vis_fireworks_and_waves_update(double *audio_frames)
 /*                 Draw Functions                 */
 /**************************************************/
 
-int vis_fireworks_and_waves_firework_list_draw(void *data)
+static int firework_list_draw(void *data)
 {
     draw_firework((Firework *) data);
     return true;
 }
 
-void vis_fireworks_and_waves_draw(bool verbose)
+static void draw(bool verbose)
 {
-    ClearBackground(vis_fireworks_and_waves_metadata.background_color);
+    ClearBackground(background_color);
 
-    if (vis_fireworks_and_waves_metadata.show_wave) 
+    if (show_wave) 
     {
-        draw_wave_line(&vis_fireworks_and_waves_metadata.wave_line, vis_fireworks_and_waves_metadata.wave_y);
+        draw_wave_line(&wave_line, wave_y);
     }
 
-    DrawLineStrip(vis_fireworks_and_waves_metadata.sound_wave_line_points, vis_audio_buffer_frames, (Color) {0, 255 - vis_fireworks_and_waves_metadata.background_color.g, 0, 255 });
+    DrawLineStrip(sound_wave_line_points, vis_audio_buffer_frames, (Color) {0, 255 - background_color.g, 0, 255 });
     
-    linked_list_for_each(&vis_fireworks_and_waves_metadata.firework_list, &vis_fireworks_and_waves_firework_list_draw);
+    linked_list_for_each(&firework_list, &firework_list_draw);
 }
 
-int vis_fireworks_and_waves_clean_up_linked_list_action_func(void *data)
+static int clean_up_linked_list_action_func(void *data)
 {
     free(data);
     return false;
 }
 
-void vis_fireworks_and_waves_clean_up()
+static void clean_up()
 {
-    free(vis_fireworks_and_waves_metadata.bass_filtered_audio_frames);
-    free(vis_fireworks_and_waves_metadata.treble_filtered_audio_frames);
-    free(vis_fireworks_and_waves_metadata.sound_wave_line_points);
-    linked_list_for_each(&vis_fireworks_and_waves_metadata.firework_list, vis_fireworks_and_waves_clean_up_linked_list_action_func);
-    UnloadShader(vis_fireworks_and_waves_metadata.wave_shader);
+    free(bass_filtered_audio_frames);
+    free(treble_filtered_audio_frames);
+    free(sound_wave_line_points);
+    linked_list_for_each(&firework_list, clean_up_linked_list_action_func);
+    UnloadShader(wave_shader);
 }
