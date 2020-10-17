@@ -6,6 +6,7 @@
 #include "effects.h"
 #include "linked_list.h"
 #include "visualization.h"
+#include "kiss_fft.h"
 
 const int screenWidth = 1600;
 const int screenHeight = 900;
@@ -236,6 +237,8 @@ int main(int argc, char *argv[])
 
     CloseWindow();        // Close window and OpenGL context
     //--------------------------------------------------------------------------------------
+
+    kiss_fft_cleanup();
 
     return 0;
 }

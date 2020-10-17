@@ -357,7 +357,7 @@ ifeq ($(PLATFORM),PLATFORM_WEB)
 endif
 
 # Link the alsa sound library for audio input from microphones
-LDLIBS += -lasound
+LDLIBS += -lasound -L./kissfft -l:libkissfft.a
 
 # Define all source files required
 PROJECT_SOURCE_FILES ?= src/main.c src/filter.c src/effects.c src/linked_list.c src/firework.c src/wave_line.c src/vis_fireworks_and_waves.c src/vis_sound_wave.c src/vis_dvd_logo.c src/vis_time_domain.c
@@ -377,6 +377,7 @@ endif
 # Default target entry
 # NOTE: We call this Makefile target or Makefile.Android target
 all:
+	$(MAKE) -C ./kissfft all
 	$(MAKE) $(MAKEFILE_PARAMS)
 
 # Project target defined by PROJECT_NAME
