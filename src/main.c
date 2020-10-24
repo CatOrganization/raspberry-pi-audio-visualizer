@@ -11,12 +11,14 @@
 const int screenWidth = 1600;
 const int screenHeight = 900;
 
+const int target_fps = 30;
+const unsigned int target_audio_sample_rate = (1000 / target_fps) * 800;
+unsigned int actual_audio_sample_rate = target_audio_sample_rate; // May be changed by snd_pcm_hw_params_set_rate_near
 snd_pcm_format_t audio_format = SND_PCM_FORMAT_S16_LE;
 
 snd_pcm_t *init_audio_stream(const char *hw_src) 
 {
     int err;
-    unsigned int rate = 44100;
     snd_pcm_t *capture_handle;
     snd_pcm_hw_params_t *hw_params;
 
@@ -47,7 +49,7 @@ snd_pcm_t *init_audio_stream(const char *hw_src)
         exit(1);
     }
 
-    if ((err = snd_pcm_hw_params_set_rate_near(capture_handle, hw_params, &rate, 0)) < 0) {
+    if ((err = snd_pcm_hw_params_set_rate_near(capture_handle, hw_params, &actual_audio_sample_rate, 0)) < 0) {
         fprintf(stderr, "cannot set sample rate (%s)\n", snd_strerror(err));
         exit(1);
     }
@@ -107,8 +109,7 @@ int main(int argc, char *argv[])
     // Initialization
     //--------------------------------------------------------------------------------------
     InitWindow(screenWidth, screenHeight, "audio visualizer");
-	 SetConfigFlags(FLAG_VSYNC_HINT);
-    SetTargetFPS(30);
+    SetTargetFPS(target_fps);
     //--------------------------------------------------------------------------------------
 
     HideCursor();
@@ -125,7 +126,11 @@ int main(int argc, char *argv[])
     fprintf(stdout, "audio format width: %d\n", snd_pcm_format_width(audio_format));
    
     int audio_buffer_frames = 800;
-    char *raw_audio = malloc(audio_buffer_frames * snd_pcm_format_width(audio_format) / 8);
+    int raw_audio_buffer_frames = actual_audio_sample_rate / (1000 / target_fps);
+    double downsample_rate = raw_audio_buffer_frames / (double) audio_buffer_frames;
+
+
+    char *raw_audio = malloc(raw_audio_buffer_frames * snd_pcm_format_width(audio_format) / 8);
     double *audio_frames = malloc(sizeof(double) * audio_buffer_frames);
 
     int num_visualizations = 5;
@@ -143,6 +148,7 @@ int main(int argc, char *argv[])
     vis_screen_width = screenWidth;
     vis_screen_height = screenHeight;
     vis_audio_buffer_frames = audio_buffer_frames;
+    vis_audio_sample_rate = target_audio_sample_rate;
 
     for (int n = 0; n < num_visualizations; n++)
     {
@@ -159,22 +165,31 @@ int main(int argc, char *argv[])
 
         // Drop any buffered frames so we read the most recent data
         long int pending_frames = snd_pcm_avail_update(capture_handle);
-        if ((err = snd_pcm_forward(capture_handle, pending_frames)) < 0) {
-            fprintf(stderr, "error skipping forward in stream (%s)\n", snd_strerror(err));
-            break;
+        if (true || pending_frames > raw_audio_buffer_frames) 
+        {
+            if ((err = snd_pcm_forward(capture_handle, pending_frames)) < 0) {
+                fprintf(stderr, "error skipping forward in stream (%s)\n", snd_strerror(err));
+                break;
+            }
         }
 
-        if ((err = snd_pcm_readi(capture_handle, raw_audio, audio_buffer_frames)) != audio_buffer_frames) {
+        if ((err = snd_pcm_readi(capture_handle, raw_audio, raw_audio_buffer_frames)) != raw_audio_buffer_frames) {
             fprintf(stderr, "audio stream read failed: %s", snd_strerror(err));
             break;
         }
-        
+
         // Process audio values
-        for (int i = 0; i < (2 * audio_buffer_frames) - 1; i += 2)
+        int processed_idx = 0;
+        double raw_idx = 0;
+        while (processed_idx < audio_buffer_frames && raw_idx < raw_audio_buffer_frames-1)
         {
-            audio_frames[i/2] = process_audio_frame(raw_audio[i], raw_audio[i+1]) / 32000.0;
+            int rounded_raw_idx = ((int) raw_idx) * 2;
+            audio_frames[processed_idx] = process_audio_frame(raw_audio[rounded_raw_idx], raw_audio[rounded_raw_idx + 1]) / 32000.0;
+
+            processed_idx++;
+            raw_idx += downsample_rate;
         }
-        
+
 
         if (key_pressed == KEY_RIGHT || key_pressed == (int) 'n')
         {

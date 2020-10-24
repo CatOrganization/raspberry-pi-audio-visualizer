@@ -12,6 +12,7 @@ typedef void (vis_clean_up_func)();
 int vis_screen_width;
 int vis_screen_height;
 int vis_audio_buffer_frames;
+unsigned int vis_audio_sample_rate;
 
 typedef struct Visualization {
     const char *name;
