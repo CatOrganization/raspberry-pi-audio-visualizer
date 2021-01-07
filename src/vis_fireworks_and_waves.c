@@ -14,6 +14,8 @@ static double *bass_filtered_audio_frames;
 static double *treble_filtered_audio_frames;
 
 static Vector2 *sound_wave_line_points;
+static Vector2 *base_wave_line_points;
+static Vector2 *treble_wave_line_points;
 static Color background_color;
 
 static LinkedList firework_list;
@@ -48,6 +50,8 @@ static void init()
     treble_filtered_audio_frames = malloc(sizeof(double) * vis_audio_buffer_frames);
 
     sound_wave_line_points = malloc(sizeof(Vector2) * vis_audio_buffer_frames);
+	base_wave_line_points = malloc(sizeof(Vector2) * vis_audio_buffer_frames);
+	treble_wave_line_points = malloc(sizeof(Vector2) * vis_audio_buffer_frames);
 
     firework_list.head = NULL;
     firework_list.size = 0;
@@ -116,13 +120,13 @@ static int firework_list_update(void *data)
     return true;
 }
 
-static void calculate_sound_wave_line_points(double *audio_frames, int baseline_y, float scale)
+static void calculate_sound_wave_line_points(double *audio_frames, int baseline_y, float scale, Vector2 **out)
 {
     float horizontal_scale = vis_screen_width / vis_audio_buffer_frames;
     for (int n = 0; n < vis_audio_buffer_frames; n++)
     {
-        sound_wave_line_points[n].x = n * horizontal_scale;
-        sound_wave_line_points[n].y = baseline_y + (audio_frames[n] * scale);
+        (*out)[n].x = n * horizontal_scale;
+        (*out)[n].y = baseline_y + (audio_frames[n] * scale);
     }
 }
 
@@ -141,14 +145,24 @@ static void update(double *audio_frames)
     // Calculate background color
     background_color = scale_color(GREEN, max_y);
 
-    calculate_sound_wave_line_points(audio_frames, vis_screen_height / 2, vis_screen_height);
-
+    
     // Filter and process bass + treble
     double bass_max = apply_linear_filter(LowPassBassFilter, audio_frames, &bass_filtered_audio_frames, vis_audio_buffer_frames);
     double treble_max = apply_linear_filter(HighPassTrebleFilter, audio_frames, &treble_filtered_audio_frames, vis_audio_buffer_frames);
 
+    for (int n = 0; n < vis_audio_buffer_frames; n++)
+    {
+		audio_frames[n] -= bass_filtered_audio_frames[n];
+		audio_frames[n] -= treble_filtered_audio_frames[n];    
+    }
+
     process_treble(&firework_list, treble_max);
     process_bass(&wave_line, bass_max);
+
+	 calculate_sound_wave_line_points(bass_filtered_audio_frames, 675, vis_screen_height/2, &base_wave_line_points);
+	 calculate_sound_wave_line_points(treble_filtered_audio_frames, 225, vis_screen_height/2, &treble_wave_line_points);
+	 calculate_sound_wave_line_points(audio_frames, vis_screen_height / 2, vis_screen_height/2, &sound_wave_line_points);
+
 
     // Update fireworks
     linked_list_for_each(&firework_list, &firework_list_update);
@@ -175,16 +189,20 @@ static int firework_list_draw(void *data)
 
 static void draw(bool verbose)
 {
-    ClearBackground(background_color);
+    ClearBackground(BLACK);//background_color);
 
     if (show_wave) 
     {
-        draw_wave_line(&wave_line, wave_y);
+        //draw_wave_line(&wave_line, wave_y);
     }
 
-    DrawLineStrip(sound_wave_line_points, vis_audio_buffer_frames, (Color) {0, 255 - background_color.g, 0, 255 });
+    DrawLineStrip(sound_wave_line_points, vis_audio_buffer_frames, (Color) {0, 255, 0, 255 });
     
-    linked_list_for_each(&firework_list, &firework_list_draw);
+    DrawLineStrip(base_wave_line_points, vis_audio_buffer_frames, SKYBLUE);//(Color) {0, 0, 255 - background_color.g, 255 });
+    
+    DrawLineStrip(treble_wave_line_points, vis_audio_buffer_frames, (Color) {255 , 0, 0, 255 });
+    
+    //linked_list_for_each(&firework_list, &firework_list_draw);
 }
 
 static int clean_up_linked_list_action_func(void *data)
