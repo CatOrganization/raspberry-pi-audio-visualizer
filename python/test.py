@@ -1,10 +1,10 @@
 import pyaudio
 import os
 import struct
+import pygame
+import pygame.freetype
 import numpy as np
-import matplotlib.pyplot as plt
 import time
-from tkinter import TclError
 
 # constants
 
@@ -12,9 +12,15 @@ FORMAT = pyaudio.paInt16     # audio format (bytes per sample?)
 CHANNELS = 1                 # single channel for microphone
 RATE = 44100                 # samples per second
 CHUNK = int(RATE / 30)       # rate / desiredfps samples per frame
+SCREEN_WIDTH = 1600
+SCREEN_HEIGHT = 900
+HALF_SCREEN_HEIGHT = SCREEN_HEIGHT / 2
 
-# create matplotlib figure and axes
-fig, ax = plt.subplots(1, figsize=(15, 7))
+print(f"CHUNK size: {CHUNK}")
+
+pygame.init()
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+font = pygame.freetype.SysFont(pygame.freetype.get_default_font(), 24)
 
 # pyaudio class instance
 p = pyaudio.PyAudio()
@@ -28,30 +34,17 @@ stream = p.open(
     frames_per_buffer=CHUNK
 )
 
-# variable for plotting
-x = np.arange(0, 2 * CHUNK, 2)
-
-# create a line object with random data
-line, = ax.plot(x, np.random.rand(CHUNK), '-', lw=2)
-
-# basic formatting for the axes
-ax.set_title('AUDIO WAVEFORM')
-ax.set_xlabel('samples')
-ax.set_ylabel('volume')
-ax.set_ylim(-(2**15), 2**15)
-ax.set_xlim(0, 2 * CHUNK)
-plt.setp(ax, xticks=[0, CHUNK, 2 * CHUNK], yticks=[0, -32000, 32000])
-
-# show the plot
-plt.show(block=False)
-
 print('stream started')
 
 # for measuring frame rate
 frame_count = 0
 start_time = time.time()
 
-while True:
+quit = False
+debug = False
+clock = pygame.time.Clock()
+
+while not quit:
     
     # binary data
     data = stream.read(CHUNK)  
@@ -60,29 +53,26 @@ while True:
     data_int = struct.unpack(str(CHUNK) + 'h', data)
     
     # create np array
-    data_np = np.array(data_int)
-    
-    line.set_ydata(data_np)
-    
-    # update figure canvas
-    try:
-        fig.canvas.draw()
-        fig.canvas.flush_events()
-        frame_count += 1
-        
-    except TclError:
-        
-        # calculate average frame rate
-        frame_rate = frame_count / (time.time() - start_time)
-        
-        print('stream stopped')
-        print('average frame rate = {:.0f} FPS'.format(frame_rate))
-        break
+    # data_np = np.array(data_int)
+    points = [((x / len(data_int)) * SCREEN_WIDTH, HALF_SCREEN_HEIGHT + (y / 2**15) * HALF_SCREEN_HEIGHT) for (x, y) in enumerate(data_int)]
 
-    if frame_count > 200:
-        # calculate average frame rate
-        frame_rate = frame_count / (time.time() - start_time)
-        
-        print('stream stopped')
-        print('average frame rate = {:.0f} FPS'.format(frame_rate))
-        break
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            quit = True
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE or event.unicode == "q":
+                quit = True
+            if event.unicode == "d":
+                debug = not debug
+    
+
+    # Draw
+    screen.fill((0, 0, 0))
+    pygame.draw.lines(screen, (255, 0, 255), False, points)
+
+    if debug:
+        font.render_to(screen, (0, 0), f"{clock.get_fps():.0f} FPS", fgcolor=(255, 255, 255))
+
+    pygame.display.flip()
+    clock.tick()
+    frame_count += 1
