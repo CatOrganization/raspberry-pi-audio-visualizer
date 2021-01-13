@@ -7,11 +7,13 @@ import time
 from functools import reduce
 
 import os
-os.environ["RAYLIB_BIN_PATH"] = "/home/pi/code/raylib-2.0.0/release/libs/linux/"
 
-import raylibpy as pyray
-#from raylib.pyray import PyRay
-#from raylib.colors import *
+# If the provided libs don't cut it for you, 
+# download one from here: https://github.com/raysan5/raylib/releases/tag/2.0.0
+if "RAYLIB_BIN_PATH" not in os.environ:
+    os.environ["RAYLIB_BIN_PATH"] = "./raylib/linux_amd64"
+
+import raylibpy as rl
 
 # constants
 TARGET_FPS = 60
@@ -25,9 +27,8 @@ HALF_SCREEN_HEIGHT = SCREEN_HEIGHT / 2
 
 print(f"CHUNK size: {CHUNK}")
 
-#pyray = PyRay()
-pyray.init_window(SCREEN_WIDTH, SCREEN_HEIGHT, "hello")
-pyray.set_target_fps(TARGET_FPS)
+rl.init_window(SCREEN_WIDTH, SCREEN_HEIGHT, "hello")
+rl.set_target_fps(TARGET_FPS)
 
 # pyaudio class instance
 p = pyaudio.PyAudio()
@@ -45,27 +46,28 @@ print('stream started')
 
 def print_line(a, b):
     if b is not None:
-        #pyray.draw_line_ex(a, b, 1, pyray.VIOLET)
-        pyray.draw_line(a[0], a[1], b[0], b[1], pyray.VIOLET)
+        # rl.draw_line_ex(a, b, 1, rl.VIOLET)
+        rl._rl.DrawLineEx(a, b, 3, rl.VIOLET)
+        # rl.draw_line(a[0], a[1], b[0], b[1], rl.VIOLET)
 
     return b
 
-while not pyray.window_should_close():
+while not rl.window_should_close():
     # binary data
     data = stream.read(CHUNK, exception_on_overflow=False)  
     
     # convert data to integers
     data_int = struct.unpack(str(CHUNK) + 'h', data)
     
-    points = [((x / len(data_int)) * SCREEN_WIDTH, HALF_SCREEN_HEIGHT + (y / 2**15) * HALF_SCREEN_HEIGHT) for (x, y) in enumerate(data_int)]
+    points = [rl.Vector2(float((x / len(data_int)) * SCREEN_WIDTH), float(HALF_SCREEN_HEIGHT + (y / 2**15) * HALF_SCREEN_HEIGHT)) for (x, y) in enumerate(data_int)]
 
-    pyray.begin_drawing()
-    pyray.clear_background(pyray.BLACK)
+    rl.begin_drawing()
+    rl.clear_background(rl.BLACK)
 
     reduce(print_line, points)
 
-    pyray.draw_text(f"{pyray.get_fps()} fps", 5, 5, 20, pyray.VIOLET)
+    rl.draw_text(f"{rl.get_fps()} fps", 5, 5, 20, rl.VIOLET)
 
-    pyray.end_drawing()
+    rl.end_drawing()
 
-pyray.close_window()
+rl.close_window()
