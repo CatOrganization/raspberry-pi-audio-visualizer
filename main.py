@@ -1,12 +1,6 @@
 import pyaudio
 import os
 import struct
-import numpy as np
-import time
-
-from functools import reduce
-
-import os
 
 # If the provided libs don't cut it for you, 
 # download one from here: https://github.com/raysan5/raylib/releases/tag/2.0.0
@@ -14,60 +8,67 @@ if "RAYLIB_BIN_PATH" not in os.environ:
     os.environ["RAYLIB_BIN_PATH"] = "./raylib/linux_amd64"
 
 import raylibpy as rl
+import visualizers
 
-# constants
-TARGET_FPS = 60
-FORMAT = pyaudio.paInt16     # audio format (bytes per sample?)
-CHANNELS = 1                 # single channel for microphone
-RATE = 44100                 # samples per second
-CHUNK = int(RATE / TARGET_FPS)       # rate / desiredfps samples per frame
-SCREEN_WIDTH = 1600
-SCREEN_HEIGHT = 900
-HALF_SCREEN_HEIGHT = SCREEN_HEIGHT / 2
+class Config:
+    pass
 
-print(f"CHUNK size: {CHUNK}")
+config = Config()
 
-rl.init_window(SCREEN_WIDTH, SCREEN_HEIGHT, "hello")
-rl.set_target_fps(TARGET_FPS)
+# Graphics constants
+config.target_fps = 60
+config.screen_width = 1600
+config.screen_height = 900
 
-# pyaudio class instance
-p = pyaudio.PyAudio()
+# Audio constants
+config.audio_sample_rate = 44100 # hz
+config.audio_sample_size = config.audio_sample_rate // config.target_fps
+config.max_audio_sample_value = 2**15
 
-# stream object to get data from microphone
-stream = p.open(
-    format=FORMAT,
-    channels=CHANNELS,
-    rate=RATE,
-    input=True,
-    frames_per_buffer=CHUNK
-)
+# Visualizers
+visualizers = [visualizers.BasicSoundWaveVis(config)]
 
-print('stream started')
+print(f"audio_sample_size size: {config.audio_sample_size}")
 
-def print_line(a, b):
-    if b is not None:
-        # rl.draw_line_ex(a, b, 1, rl.VIOLET)
-        rl._rl.DrawLineEx(a, b, 3, rl.VIOLET)
-        # rl.draw_line(a[0], a[1], b[0], b[1], rl.VIOLET)
+def main():
+    # Init Raylib window
+    rl.init_window(config.screen_width, config.screen_height, "Audio Visualizer")
+    rl.set_target_fps(config.target_fps)
 
-    return b
+    # Open the audio stream
+    pa = pyaudio.PyAudio()
+    audio_stream = pa.open(
+        format=pyaudio.paInt16, 
+        channels=1, 
+        rate=config.audio_sample_rate, 
+        input=True, 
+        frames_per_buffer=config.audio_sample_size
+    )
 
-while not rl.window_should_close():
-    # binary data
-    data = stream.read(CHUNK, exception_on_overflow=False)  
-    
-    # convert data to integers
-    data_int = struct.unpack(str(CHUNK) + 'h', data)
-    
-    points = [rl.Vector2(float((x / len(data_int)) * SCREEN_WIDTH), float(HALF_SCREEN_HEIGHT + (y / 2**15) * HALF_SCREEN_HEIGHT)) for (x, y) in enumerate(data_int)]
+    debug_mode = True
 
-    rl.begin_drawing()
-    rl.clear_background(rl.BLACK)
+    # Enter the main loop
+    while not rl.window_should_close():
+        raw_audio = audio_stream.read(config.audio_sample_size, exception_on_overflow=False)  
+        unpacked_audio = struct.unpack(str(config.audio_sample_size) + 'h', raw_audio)
+        
+        visualizers[0].on_recieve_audio_data(unpacked_audio)
 
-    reduce(print_line, points)
+        rl.begin_drawing()
 
-    rl.draw_text(f"{rl.get_fps()} fps", 5, 5, 20, rl.VIOLET)
+        visualizers[0].on_draw(debug_mode)
 
-    rl.end_drawing()
+        if debug_mode:
+            rl.draw_text(f"{rl.get_fps()} fps", 5, 5, 20, rl.RAYWHITE)
+            rl.draw_text(f"{visualizers[0].name}", 5, config.screen_height - 25, 20, rl.RAYWHITE)
 
-rl.close_window()
+        rl.end_drawing()
+
+    # Cleanup time
+    audio_stream.stop_stream()
+    audio_stream.close()
+    pa.terminate()
+    rl.close_window()
+
+if __name__ == "__main__":
+    main()

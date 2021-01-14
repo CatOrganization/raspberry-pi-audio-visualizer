@@ -1,4 +1,4 @@
 *.o
 *.swp
 audio_visualizer
-
+__pycache__/
