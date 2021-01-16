@@ -26,7 +26,8 @@ config.audio_sample_size = config.audio_sample_rate // config.target_fps
 config.max_audio_sample_value = 2**15
 
 # Visualizers
-visualizers = [visualizers.BasicSoundWaveVis(config)]
+visualizers = [visualizers.FrequencyDomainVis(config)]
+#visualizers = [visualizers.BasicSoundWaveVis(config)]
 
 print(f"audio_sample_size size: {config.audio_sample_size}")
 

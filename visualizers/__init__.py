@@ -1,1 +1,2 @@
 from .basic_sound_wave import BasicSoundWaveVis
+from .frequency_domain import FrequencyDomainVis

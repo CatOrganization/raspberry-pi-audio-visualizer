@@ -1,4 +1,5 @@
 import raylibpy as rl
+from scipy.signal import savgol_filter
 
 class BasicSoundWaveVis:
 
