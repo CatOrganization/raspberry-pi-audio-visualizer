@@ -41,6 +41,12 @@ def main():
     rl.init_window(config.screen_width, config.screen_height, "Audio Visualizer")
     rl.set_target_fps(config.target_fps)
 
+    def audio_callback(audio_data, frame_count, time_info, status_flags):
+        unpacked_audio = struct.unpack(str(config.audio_sample_size) + 'h', audio_data)
+        visualizers[current_vis_index].on_recieve_audio_data(unpacked_audio)
+    
+        return None, pyaudio.paContinue
+
     # Open the audio stream
     pa = pyaudio.PyAudio()
     audio_stream = pa.open(
@@ -48,18 +54,14 @@ def main():
         channels=1, 
         rate=config.audio_sample_rate, 
         input=True, 
-        frames_per_buffer=config.audio_sample_size
+        frames_per_buffer=config.audio_sample_size,
+        stream_callback=audio_callback
     )
 
     debug_mode = True
 
     # Enter the main loop
     while not rl.window_should_close():
-        raw_audio = audio_stream.read(config.audio_sample_size, exception_on_overflow=False)  
-        unpacked_audio = struct.unpack(str(config.audio_sample_size) + 'h', raw_audio)
-        
-        visualizers[current_vis_index].on_recieve_audio_data(unpacked_audio)
-
         rl.begin_drawing()
 
         visualizers[current_vis_index].on_draw(debug_mode)
@@ -76,7 +78,6 @@ def main():
 
         if debug_mode:
             rl.draw_text(f"{rl.get_fps()} fps", 5, 5, 20, rl.RAYWHITE)
-            rl.draw_text(f"pressed: {key}", 5, 25, 20, rl.RAYWHITE)
             
             length = rl.measure_text(visualizers[current_vis_index].name, 20)
             rl.draw_text(visualizers[current_vis_index].name, config.screen_width - length - 5, 5, 20, rl.RAYWHITE)
