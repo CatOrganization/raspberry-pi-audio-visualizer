@@ -112,8 +112,8 @@ int main(int argc, char *argv[])
     SetTargetFPS(target_fps);
     //--------------------------------------------------------------------------------------
 
-    HideCursor();
-    DisableCursor();
+    // HideCursor();
+    // DisableCursor();
 
     int err;
     int n = 0;
