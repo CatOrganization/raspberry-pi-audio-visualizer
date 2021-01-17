@@ -38,4 +38,4 @@ class BasicSoundWaveVis:
         # Wave color should be the inverse of the background color
         wave_color = rl.Color(255 - self.background_color.r, 0, 255 - self.background_color.b, 255)
         for i in range(self.config.audio_sample_size - 1):
-            rl._rl.DrawLineEx(self.wave_points[i], self.wave_points[i+1], self.wave_thickness, wave_color)
+            rl.draw_line_v(self.wave_points[i], self.wave_points[i+1], wave_color)
