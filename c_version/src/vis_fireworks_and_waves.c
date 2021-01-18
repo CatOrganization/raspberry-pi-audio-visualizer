@@ -44,10 +44,10 @@ Visualization NewFireworksAndWavesVis()
 
 static void init() 
 {
-    bass_filtered_audio_frames = malloc(sizeof(double) * vis_audio_buffer_frames);
-    treble_filtered_audio_frames = malloc(sizeof(double) * vis_audio_buffer_frames);
+    bass_filtered_audio_frames = malloc(sizeof(double) * vis_audio_buffer_samples);
+    treble_filtered_audio_frames = malloc(sizeof(double) * vis_audio_buffer_samples);
 
-    sound_wave_line_points = malloc(sizeof(Vector2) * vis_audio_buffer_frames);
+    sound_wave_line_points = malloc(sizeof(Vector2) * vis_audio_buffer_samples);
 
     firework_list.head = NULL;
     firework_list.size = 0;
@@ -118,8 +118,8 @@ static int firework_list_update(void *data)
 
 static void calculate_sound_wave_line_points(double *audio_frames, int baseline_y, float scale)
 {
-    float horizontal_scale = vis_screen_width / vis_audio_buffer_frames;
-    for (int n = 0; n < vis_audio_buffer_frames; n++)
+    float horizontal_scale = (float) vis_screen_width / vis_audio_buffer_samples;
+    for (int n = 0; n < vis_audio_buffer_samples; n++)
     {
         sound_wave_line_points[n].x = n * horizontal_scale;
         sound_wave_line_points[n].y = baseline_y + (audio_frames[n] * scale);
@@ -130,7 +130,7 @@ static void update(double *audio_frames)
 {
     // Find max audio frame value
     double max_y = audio_frames[0];
-    for (int n = 1; n < vis_audio_buffer_frames; n++)
+    for (int n = 1; n < vis_audio_buffer_samples; n++)
     {
         if (absf(audio_frames[n]) > max_y)
         {
@@ -144,8 +144,8 @@ static void update(double *audio_frames)
     calculate_sound_wave_line_points(audio_frames, vis_screen_height / 2, vis_screen_height);
 
     // Filter and process bass + treble
-    double bass_max = apply_linear_filter(LowPassBassFilter, audio_frames, &bass_filtered_audio_frames, vis_audio_buffer_frames);
-    double treble_max = apply_linear_filter(HighPassTrebleFilter, audio_frames, &treble_filtered_audio_frames, vis_audio_buffer_frames);
+    double bass_max = apply_linear_filter(LowPassBassFilter, audio_frames, &bass_filtered_audio_frames, vis_audio_buffer_samples);
+    double treble_max = apply_linear_filter(HighPassTrebleFilter, audio_frames, &treble_filtered_audio_frames, vis_audio_buffer_samples);
 
     process_treble(&firework_list, treble_max);
     process_bass(&wave_line, bass_max);
@@ -182,7 +182,7 @@ static void draw(bool verbose)
         draw_wave_line(&wave_line, wave_y);
     }
 
-    DrawLineStrip(sound_wave_line_points, vis_audio_buffer_frames, (Color) {0, 255 - background_color.g, 0, 255 });
+    DrawLineStrip(sound_wave_line_points, vis_audio_buffer_samples, (Color) {0, 255 - background_color.g, 0, 255 });
     
     linked_list_for_each(&firework_list, &firework_list_draw);
 }

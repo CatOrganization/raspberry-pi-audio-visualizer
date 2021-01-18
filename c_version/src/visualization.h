@@ -11,7 +11,7 @@ typedef void (vis_clean_up_func)();
 // These value are populated in main.c
 int vis_screen_width;
 int vis_screen_height;
-int vis_audio_buffer_frames;
+int vis_audio_buffer_samples;
 unsigned int vis_audio_sample_rate;
 
 typedef struct Visualization {

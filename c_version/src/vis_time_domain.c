@@ -41,10 +41,10 @@ static void init()
 
 static void update(double *audio_frames)
 {
-    int inc = vis_audio_buffer_frames / samples_per_frame;
+    int inc = vis_audio_buffer_samples / samples_per_frame;
     if (inc < 1) inc = 1;
     
-    for (int n = 0; n < vis_audio_buffer_frames; n += inc)
+    for (int n = 0; n < vis_audio_buffer_samples; n += inc)
     {
         double *d = malloc(sizeof(double));
         *d = audio_frames[n];

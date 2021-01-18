@@ -16,7 +16,7 @@ class Config:
 config = Config()
 
 # Graphics constants
-config.target_fps = 60
+config.target_fps = 30
 config.screen_width = 1600
 config.screen_height = 900
 
