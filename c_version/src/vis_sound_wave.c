@@ -29,16 +29,16 @@ Visualization NewSoundWaveVis()
 
 static void init()
 {
-    sound_wave_line_points = malloc(sizeof(Vector2) * vis_audio_buffer_frames);
+    sound_wave_line_points = malloc(sizeof(Vector2) * vis_audio_buffer_samples);
 }
 
 static void update(double *audio_frames)
 {
     // Calculate sound wave line points and line thickness
-    float horizontal_scale = vis_screen_width / vis_audio_buffer_frames;
+    float horizontal_scale = (float) vis_screen_width / vis_audio_buffer_samples;
     int center_y = vis_screen_height / 2;
     double max_y = -1;
-    for (int n = 0; n < vis_audio_buffer_frames; n++)
+    for (int n = 0; n < vis_audio_buffer_samples; n++)
     {
         sound_wave_line_points[n].x = n * horizontal_scale;
         sound_wave_line_points[n].y = center_y + (audio_frames[n] * vis_screen_height);
@@ -60,7 +60,7 @@ static void draw(bool verbose)
 {
     ClearBackground(background_color);
 
-    for (int n = 0; n < vis_audio_buffer_frames - 1; n++)
+    for (int n = 0; n < vis_audio_buffer_samples - 1; n++)
     {
         DrawLineEx(sound_wave_line_points[n], sound_wave_line_points[n+1], line_thickness, line_color);
     }

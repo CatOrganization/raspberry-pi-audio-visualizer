@@ -220,7 +220,7 @@ static void update(double *audio_frames)
 
     // Find max audio frame value to calculate background intensity
     double max_y = audio_frames[0];
-    for (int n = 1; n < vis_audio_buffer_frames; n++)
+    for (int n = 1; n < vis_audio_buffer_samples; n++)
     {
         if (absf(audio_frames[n]) > max_y)
         {

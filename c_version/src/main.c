@@ -124,11 +124,12 @@ int main(int argc, char *argv[])
   
     fprintf(stdout, "audio format width: %d\n", snd_pcm_format_width(audio_format));
    
-    int audio_buffer_frames = audio_sample_rate / target_fps;
-    char *raw_audio = malloc(audio_buffer_frames * snd_pcm_format_width(audio_format) / 8);
-    double *audio_frames = malloc(sizeof(double) * audio_buffer_frames);
+    int audio_buffer_samples = audio_sample_rate / target_fps;
+    int frame_buffer_len = 3;
+    char *raw_audio = malloc(audio_buffer_samples * snd_pcm_format_width(audio_format) / 8);
+    double *audio_frames = malloc(sizeof(double) * audio_buffer_samples * frame_buffer_len);
 
-    fprintf(stdout, "audio buffer frames: %d\n", audio_buffer_frames);
+    fprintf(stdout, "audio buffer frames: %d\n", audio_buffer_samples);
 
     int num_visualizations = 5;
     int curr_vis = 0;
@@ -144,34 +145,36 @@ int main(int argc, char *argv[])
 
     vis_screen_width = screenWidth;
     vis_screen_height = screenHeight;
-    vis_audio_buffer_frames = audio_buffer_frames;
+    vis_audio_buffer_samples = audio_buffer_samples * frame_buffer_len;
     vis_audio_sample_rate = audio_sample_rate;
 
     for (int n = 0; n < num_visualizations; n++)
     {
         fprintf(stdout, "init '%s'\n", visualizations[n].name);
-        visualizations[n].init(screenWidth, screenHeight, audio_buffer_frames);
+        visualizations[n].init(screenWidth, screenHeight, audio_buffer_samples);
     }
-
-    fprintf(stdout, "made it to the loop\n");
 
     // Main game loop
     while (!WindowShouldClose())    // Detect window close button or ESC key
     {
-        int key_pressed = GetKeyPressed();         
         // Update
         //----------------------------------------------------------------------------------
 
-        if ((err = snd_pcm_readi(capture_handle, raw_audio, audio_buffer_frames)) != audio_buffer_frames) {
+        // Process audio
+        if ((err = snd_pcm_readi(capture_handle, raw_audio, audio_buffer_samples)) != audio_buffer_samples) {
             fprintf(stderr, "audio stream read failed: %s", snd_strerror(err));
             break;
         }
 
-        for (int n = 0; n < audio_buffer_frames * 2; n += 2)
+        // Copy the previous sound data over to make room for the new frame of data
+        memmove(audio_frames, audio_frames + (audio_buffer_samples), (frame_buffer_len - 1) * audio_buffer_samples * sizeof(double));
+        for (int n = 0; n < audio_buffer_samples * 2; n += 2)
         {
-            audio_frames[n / 2] = process_audio_frame(raw_audio[n], raw_audio[n+1]) / 32000.0;
+            audio_frames[(audio_buffer_samples * (frame_buffer_len - 1)) + n / 2] = process_audio_frame(raw_audio[n], raw_audio[n+1]) / 32000.0;
         }
 
+        // Process key presses
+        int key_pressed = GetKeyPressed();
         if (key_pressed == KEY_RIGHT || key_pressed == (int) 'n')
         {
             curr_vis++;
@@ -185,18 +188,12 @@ int main(int argc, char *argv[])
         }
 
         visualizations[curr_vis].update(audio_frames);    
-        
+
         // 'v' or 'd' toggles verbose/debug mode        
         if (key_pressed == 118 || key_pressed == 100)
         {
-                if (verbose_mode) 
-                {
-                    verbose_mode=0;
-                } 
-                else 
-                {
-                    verbose_mode=1;
-                }
+            if (verbose_mode) verbose_mode = 0;
+            else verbose_mode = 1;
         }
 
         // only check temp once every 5 seconds     
