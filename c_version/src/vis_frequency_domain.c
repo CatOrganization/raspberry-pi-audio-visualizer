@@ -63,7 +63,7 @@ static void update(double *audio_frames)
     for (int n = 0; n < vis_audio_buffer_samples; n++)
     {
         wave_points[n].x = ((float) n) / vis_audio_buffer_samples * vis_screen_width;
-        wave_points[n].y = center_y - 50 + (audio_frames[n] * vis_screen_height);
+        wave_points[n].y = center_y + (audio_frames[n] * vis_screen_height);
     }
 }
 
@@ -79,9 +79,16 @@ static void draw(bool verbose)
     int num_magnitudes = 400;
     int bar_width = 3;
     for (int n = 1; n < num_magnitudes - 1; n++)
-    {
-        int magnitude = (magnitudes[n-1] + magnitudes[n]*2 + magnitudes[n+1]) / 2;// + magnitudes[n+1]) / 2;
-        DrawRectangle(n * 4, vis_screen_height - magnitude - 100, bar_width, magnitude + 100, GOLD);
+    {    	
+    	  int mag_index = n;
+		  if (n > num_magnitudes / 2)
+		  {
+				mag_index = num_magnitudes - n;		  
+		  }		  
+		      	        
+		  int magnitude = (magnitudes[mag_index-1] + magnitudes[mag_index]*2 + magnitudes[mag_index+1]) / 2;// + magnitudes[n+1]) / 2;
+        DrawRectangle(n * 4, vis_screen_height - magnitude - 50, bar_width, magnitude + 100, GOLD);
+        DrawRectangle(n * 4, 0, bar_width, magnitude + 50, GOLD);
     }
 }
 

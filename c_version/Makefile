@@ -27,7 +27,7 @@
 PROJECT_NAME       ?=audio_visualizer 
 RAYLIB_VERSION     ?= 3.0.0
 RAYLIB_API_VERSION ?= 3
-RAYLIB_PATH        ?= ../raylib
+RAYLIB_PATH        ?= ../../raylib
 
 # Define default options
 

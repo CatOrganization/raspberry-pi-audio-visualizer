@@ -125,7 +125,7 @@ int main(int argc, char *argv[])
     fprintf(stdout, "audio format width: %d\n", snd_pcm_format_width(audio_format));
    
     int audio_buffer_samples = audio_sample_rate / target_fps;
-    int frame_buffer_len = 3;
+    int frame_buffer_len = 4;
     char *raw_audio = malloc(audio_buffer_samples * snd_pcm_format_width(audio_format) / 8);
     double *audio_frames = malloc(sizeof(double) * audio_buffer_samples * frame_buffer_len);
 
