@@ -138,7 +138,7 @@ int main(int argc, char *argv[])
         NewSoundWaveVis(),
         NewDvdLogoVis(),
         NewTimeDomainVis(),
-        NewFrequencyDomainVis()
+        NewFrequencyAndWaveVis()
     };
 
     fprintf(stdout, "initializing visualizations\n");

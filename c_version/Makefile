@@ -362,7 +362,7 @@ endif
 LDLIBS += -lasound -L./kissfft -l:libkissfft.a
 
 # Define all source files required
-PROJECT_SOURCE_FILES ?= src/main.c src/filter.c src/effects.c src/linked_list.c src/firework.c src/wave_line.c src/vis_fireworks_and_waves.c src/vis_sound_wave.c src/vis_dvd_logo.c src/vis_time_domain.c src/vis_frequency_domain.c
+PROJECT_SOURCE_FILES ?= $(wildcard src/*.c)
 
 # Define all object files from source files
 OBJS = $(patsubst %.c, %.o, $(PROJECT_SOURCE_FILES))
@@ -398,7 +398,10 @@ ifeq ($(PLATFORM),PLATFORM_DESKTOP)
 		del *.o *.exe /s
     endif
     ifeq ($(PLATFORM_OS),LINUX)
-	find -type f -executable | xargs file -i | grep -E 'x-object|x-archive|x-sharedlib|x-executable|x-pie-executable' | rev | cut -d ':' -f 2- | rev | xargs rm -fv
+	# find -type f -executable | xargs file -i | grep -E 'x-object|x-archive|x-sharedlib|x-executable|x-pie-executable' | rev | cut -d ':' -f 2- | rev | xargs rm -fv
+	rm -fv audio_visualizer
+	rm -fv *.o
+	rm -fv src/*.o
     endif
     ifeq ($(PLATFORM_OS),OSX)
 		find . -type f -perm +ugo+x -delete
