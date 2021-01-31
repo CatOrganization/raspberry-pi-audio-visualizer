@@ -12,6 +12,9 @@ Color get_random_color(float saturation);
 // Scales the color by the given scale factor
 Color scale_color(Color color, float scale_factor);
 
+// Blends from color a to b. ie blend_colors(a, b, 0.0) = a; blend_colors(a, b, 1.0) = b
+Color blend_colors(Color a, Color b, float blend_percentage);
+
 // Gets a random number between the given min and max
 double get_random_number(double min, double max);
 

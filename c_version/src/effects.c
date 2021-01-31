@@ -31,3 +31,14 @@ Color scale_color(Color color, float scale_factor)
 
     return output;
 }
+
+Color blend_colors(Color a, Color b, float blend_percentage)
+{
+    Color blended = a;
+
+    blended.r += (b.r - a.r) * blend_percentage;
+    blended.g += (b.g - a.g) * blend_percentage;
+    blended.b += (b.b - a.b) * blend_percentage;
+
+    return blended;
+}

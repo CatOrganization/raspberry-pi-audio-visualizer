@@ -131,14 +131,15 @@ int main(int argc, char *argv[])
 
     fprintf(stdout, "audio buffer frames: %d\n", audio_buffer_samples);
 
-    int num_visualizations = 5;
+    int num_visualizations = 6;
     int curr_vis = 0;
     Visualization visualizations[] = {
         NewFireworksAndWavesVis(),
         NewSoundWaveVis(),
         NewDvdLogoVis(),
         NewTimeDomainVis(),
-        NewFrequencyAndWaveVis()
+        NewFrequencyAndWaveVis(),
+        NewFrequencyDomainVis()
     };
 
     fprintf(stdout, "initializing visualizations\n");
