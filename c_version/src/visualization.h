@@ -27,6 +27,6 @@ Visualization NewFireworksAndWavesVis();
 Visualization NewSoundWaveVis();
 Visualization NewDvdLogoVis();
 Visualization NewTimeDomainVis();
-Visualization NewFrequencyDomainVis();
+Visualization NewFrequencyAndWaveVis();
 
 #endif
