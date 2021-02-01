@@ -85,12 +85,6 @@ static int determine_x_coord(float percentage, int num_lines)
         should_reverse = !should_reverse;
     }
 
-    // if (percentage < 0.25f) return (percentage / 0.25f) * vis_screen_width;
-    // if (percentage < 0.50f) return ((0.25f - (percentage - 0.25f)) / 0.25f) * vis_screen_width;
-    // if (percentage < 0.75) return ((percentage - 0.5f) / 0.25f) * vis_screen_width;
-    
-    // return ((0.25f - (percentage - 0.75f)) / 0.25f) * vis_screen_width;
-
     if (should_reverse)
     {
         return (1.0f - (percentage / percentage_per_line)) * vis_screen_width;
