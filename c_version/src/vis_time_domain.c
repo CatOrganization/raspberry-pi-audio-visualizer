@@ -41,14 +41,26 @@ static void init()
 
 static void update(double *audio_frames)
 {
-    int inc = vis_audio_buffer_samples / samples_per_frame;
-    if (inc < 1) inc = 1;
-    
-    for (int n = 0; n < vis_audio_buffer_samples; n += inc)
+    int data_points_per_sample = vis_audio_buffer_samples / samples_per_frame;
+    if (data_points_per_sample < 1) data_points_per_sample = 1;
+
+    double current_max = absf(audio_frames[0]);
+
+    for (int n = 1; n < vis_audio_buffer_samples; n++)
     {
-        double *d = malloc(sizeof(double));
-        *d = audio_frames[n];
-        linked_list_add(&amplitudes, d);
+        if (absf(audio_frames[n]) > current_max)
+        {
+            current_max = absf(audio_frames[n]);
+        }
+
+        if (n % data_points_per_sample == 0)
+        {
+            double *d = malloc(sizeof(double));
+            *d = current_max;
+            linked_list_add(&amplitudes, d);
+
+            current_max = 0;
+        }
     }
 
     if (IsKeyDown((char) 'M'))
