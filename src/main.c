@@ -57,14 +57,11 @@ int main(int argc, char *argv[])
     config.audio_format = SND_PCM_FORMAT_S16_LE;
     config.target_sample_rate = 44100;
     config.target_reads_per_second = target_fps;
-    config.num_frames_to_buffer = 4;
+    config.num_frames_to_buffer = 1;
 
     ALSAAudioSource source = init_alsa_audio_source(config);
 
-    int audio_buffer_samples = source.audio_sample_rate / target_fps;
-    int frame_buffer_len = 4;
-    char *raw_audio = malloc(audio_buffer_samples * snd_pcm_format_width(source.audio_format) / 8);
-    double *audio_frames = malloc(sizeof(double) * audio_buffer_samples * frame_buffer_len);
+    WAVFileAudioSource wav_source = init_wav_audio_source("jazz-guitar-mono-signed-int.wav");
 
     int num_visualizations = 6;
     int curr_vis = 0;
@@ -109,8 +106,13 @@ int main(int argc, char *argv[])
 //            audio_frames[(audio_buffer_samples * (frame_buffer_len - 1)) + n / 2] = process_audio_frame2(raw_audio[n], raw_audio[n+1]) / 32000.0;
 //        }
 
-        if ((err = read_frames(&source)) != source.audio_buffer_samples_per_read) {
-            fprintf(stderr, "audio stream read failed: %s", snd_strerror(err));
+//        if ((err = read_frames_alsa(&source)) != source.audio_buffer_samples_per_read) {
+//            fprintf(stderr, "audio stream read failed: %s", snd_strerror(err));
+//            break;
+//        }
+
+        if ((err = read_frames_wav(&wav_source)) <= 0) {
+            fprintf(stderr, "audio stream read failed: %ld", err);
             break;
         }
 
@@ -128,7 +130,7 @@ int main(int argc, char *argv[])
             if (curr_vis < 0) curr_vis = num_visualizations - 1;
         }
 
-        visualizations[curr_vis].update(source.audio_frames_buffer);
+        visualizations[curr_vis].update(wav_source.audio_frames_buffer);
 
         // 'v' or 'd' toggles verbose/debug mode        
         if (key_pressed == 118 || key_pressed == 100)
