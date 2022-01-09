@@ -9,3 +9,8 @@ Needs
 - pyaudio (requires setup)
 - raylib-py (requires raylib binaries)
 - wave?
+
+Convert WAV file to expected format:
+```
+sox jazz-guitar.wav -c 1 -b 16 -e signed-integer jazz-guitar-mono-signed-int.wav
+```
