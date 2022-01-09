@@ -2,9 +2,7 @@
 #include <alsa/asoundlib.h>
 
 #include "raylib.h"
-#include "filter.h"
-#include "effects.h"
-#include "linked_list.h"
+#include "audio_source.h"
 #include "visualization.h"
 #include "kiss_fft.h"
 
@@ -12,89 +10,12 @@ const int screenWidth = 1600;
 const int screenHeight = 900;
 
 const int target_fps = 30;
-unsigned int audio_sample_rate = 44100;
-snd_pcm_format_t audio_format = SND_PCM_FORMAT_S16_LE;
-
-snd_pcm_t *init_audio_stream(const char *hw_src) 
-{
-    int err;
-    snd_pcm_t *capture_handle;
-    snd_pcm_hw_params_t *hw_params;
-
-    fprintf(stdout, "Initializing sound stuff...\n");
-
-    if ((err = snd_pcm_open(&capture_handle, hw_src, SND_PCM_STREAM_CAPTURE, 0)) < 0) {
-        fprintf(stderr, "cannot open audio device '%s' (%s)\n", hw_src, snd_strerror(err));
-        exit(1);
-    }
-
-    if ((err = snd_pcm_hw_params_malloc(&hw_params)) < 0) {
-        fprintf(stderr, "cannot allocate hw params (%s)\n", snd_strerror(err));
-        exit(1);
-    }
-
-    if ((err = snd_pcm_hw_params_any(capture_handle, hw_params)) < 0) {
-        fprintf(stderr, "cannot initialize hw params (%s)\n", snd_strerror(err));
-        exit(1);
-    }
-
-    if ((err = snd_pcm_hw_params_set_access(capture_handle, hw_params, SND_PCM_ACCESS_RW_INTERLEAVED)) < 0) {
-        fprintf(stderr, "cannot set hw_params access type (%s)\n", snd_strerror(err));
-        exit(1);
-    }
-
-    if ((err = snd_pcm_hw_params_set_format(capture_handle, hw_params, audio_format)) < 0) {
-        fprintf(stderr, "cannot set audio format (%s)\n", snd_strerror(err));
-        exit(1);
-    }
-
-    if ((err = snd_pcm_hw_params_set_rate_near(capture_handle, hw_params, &audio_sample_rate, 0)) < 0) {
-        fprintf(stderr, "cannot set sample rate (%s)\n", snd_strerror(err));
-        exit(1);
-    }
-
-    if ((err = snd_pcm_hw_params_set_channels(capture_handle, hw_params, 1)) < 0) {
-        fprintf(stderr, "cannot set num channels (%s)\n", snd_strerror(err));
-        exit(1);
-    }
-
-    if ((err = snd_pcm_hw_params(capture_handle, hw_params)) < 0) {
-        fprintf(stderr, "cannot set params (%s)\n", snd_strerror(err));
-        exit(1);
-    }
-
-    snd_pcm_hw_params_free(hw_params);
-
-    if ((err = snd_pcm_prepare(capture_handle)) < 0) {
-        fprintf(stderr, "cannot prepare audio interface for use (%s)\n", snd_strerror(err));
-        exit(1);
-    }
-
-    fprintf(stdout, "Sound stuff initialized!\n");
-
-    return capture_handle;
-}
 
 void run_command(const char *command, char *output, int output_len)
 {
     FILE *fp = popen(command, "r");
     fgets(output, output_len, fp);
     pclose(fp);
-}
-
-int process_audio_frame(char b1, char b2)
-{
-    static int max = 1 << 16;
-
-    int i = (int) b2;
-    i = i << 8;
-    i = i | b1;
-
-    if (i > max / 2) {
-        return -(max - i);
-    }
-
-    return i;
 }
 
 int main(int argc, char *argv[])
@@ -114,22 +35,36 @@ int main(int argc, char *argv[])
     // HideCursor();
     // DisableCursor();
 
-    int err;
+    long err;
     int n = 0;
     char str[400];
     char cmd_output[128];
     bool verbose_mode = false;
 
-    snd_pcm_t *capture_handle = init_audio_stream(argv[1]);
-  
-    fprintf(stdout, "audio format width: %d\n", snd_pcm_format_width(audio_format));
-   
-    int audio_buffer_samples = audio_sample_rate / target_fps;
-    int frame_buffer_len = 4;
-    char *raw_audio = malloc(audio_buffer_samples * snd_pcm_format_width(audio_format) / 8);
-    double *audio_frames = malloc(sizeof(double) * audio_buffer_samples * frame_buffer_len);
+//    snd_pcm_t *capture_handle = init_audio_stream(argv[1]);
+//
+//    fprintf(stdout, "audio format width: %d\n", snd_pcm_format_width(audio_format));
+//
+//    int audio_buffer_samples = audio_sample_rate / target_fps;
+//    int frame_buffer_len = 4;
+//    char *raw_audio = malloc(audio_buffer_samples * snd_pcm_format_width(audio_format) / 8);
+//    double *audio_frames = malloc(sizeof(double) * audio_buffer_samples * frame_buffer_len);
+//
+//    fprintf(stdout, "audio buffer frames: %d\n", audio_buffer_samples);
 
-    fprintf(stdout, "audio buffer frames: %d\n", audio_buffer_samples);
+    ALSAAudioSourceConfig config;
+    config.hw_src = argv[1];
+    config.audio_format = SND_PCM_FORMAT_S16_LE;
+    config.target_sample_rate = 44100;
+    config.target_reads_per_second = target_fps;
+    config.num_frames_to_buffer = 4;
+
+    ALSAAudioSource source = init_alsa_audio_source(config);
+
+    int audio_buffer_samples = source.audio_sample_rate / target_fps;
+    int frame_buffer_len = 4;
+    char *raw_audio = malloc(audio_buffer_samples * snd_pcm_format_width(source.audio_format) / 8);
+    double *audio_frames = malloc(sizeof(double) * audio_buffer_samples * frame_buffer_len);
 
     int num_visualizations = 6;
     int curr_vis = 0;
@@ -146,13 +81,13 @@ int main(int argc, char *argv[])
 
     vis_screen_width = screenWidth;
     vis_screen_height = screenHeight;
-    vis_audio_buffer_samples = audio_buffer_samples * frame_buffer_len;
-    vis_audio_sample_rate = audio_sample_rate;
+    vis_audio_buffer_samples = source.audio_buffer_samples_per_read * source.num_frames_to_buffer;
+    vis_audio_sample_rate = source.audio_sample_rate;
 
     for (int n = 0; n < num_visualizations; n++)
     {
         fprintf(stdout, "init '%s'\n", visualizations[n].name);
-        visualizations[n].init(screenWidth, screenHeight, audio_buffer_samples);
+        visualizations[n].init(screenWidth, screenHeight, source.audio_buffer_samples_per_read);
     }
 
     // Main game loop
@@ -161,17 +96,22 @@ int main(int argc, char *argv[])
         // Update
         //----------------------------------------------------------------------------------
 
-        // Process audio
-        if ((err = snd_pcm_readi(capture_handle, raw_audio, audio_buffer_samples)) != audio_buffer_samples) {
+//        // Process audio
+//        if ((err = snd_pcm_readi(source.capture_handle, raw_audio, audio_buffer_samples)) != audio_buffer_samples) {
+//            fprintf(stderr, "audio stream read failed: %s", snd_strerror(err));
+//            break;
+//        }
+//
+//        // Copy the previous sound data over to make room for the new frame of data
+//        memmove(audio_frames, audio_frames + (audio_buffer_samples), (frame_buffer_len - 1) * audio_buffer_samples * sizeof(double));
+//        for (int n = 0; n < audio_buffer_samples * 2; n += 2)
+//        {
+//            audio_frames[(audio_buffer_samples * (frame_buffer_len - 1)) + n / 2] = process_audio_frame2(raw_audio[n], raw_audio[n+1]) / 32000.0;
+//        }
+
+        if ((err = read_frames(&source)) != source.audio_buffer_samples_per_read) {
             fprintf(stderr, "audio stream read failed: %s", snd_strerror(err));
             break;
-        }
-
-        // Copy the previous sound data over to make room for the new frame of data
-        memmove(audio_frames, audio_frames + (audio_buffer_samples), (frame_buffer_len - 1) * audio_buffer_samples * sizeof(double));
-        for (int n = 0; n < audio_buffer_samples * 2; n += 2)
-        {
-            audio_frames[(audio_buffer_samples * (frame_buffer_len - 1)) + n / 2] = process_audio_frame(raw_audio[n], raw_audio[n+1]) / 32000.0;
         }
 
         // Process key presses
@@ -188,7 +128,7 @@ int main(int argc, char *argv[])
             if (curr_vis < 0) curr_vis = num_visualizations - 1;
         }
 
-        visualizations[curr_vis].update(audio_frames);    
+        visualizations[curr_vis].update(source.audio_frames_buffer);
 
         // 'v' or 'd' toggles verbose/debug mode        
         if (key_pressed == 118 || key_pressed == 100)
