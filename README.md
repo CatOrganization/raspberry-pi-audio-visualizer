@@ -5,3 +5,7 @@ I'll figure this README out eventually, for now I'm dumping some random things i
 Building Raylib for RPI:
 `make PLATFORM=PLATFORM_DESKTOP GRAPHICS=GRAPHICS_API_OPENGL_21 RAYLIB_LIBTYPE=SHARED`
 
+Needs 
+- pyaudio (requires setup)
+- raylib-py (requires raylib binaries)
+- wave?
