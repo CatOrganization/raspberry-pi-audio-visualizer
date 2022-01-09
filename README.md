@@ -14,6 +14,11 @@ sudo apt-get install libasound2-dev
 
 It also depends on [raylib](https://www.raylib.com) for graphics. See [here](https://www.github.com/raysan5/raylib/wiki/Working-on-Raspberry-Pi) for instructions on building raylib for raspberry pi.
 
+It also depends on `libsndfile` for playback of local WAV files:
+```
+sudo apt-get install libsndfile-dev
+```
+
 ## Building
 
 Once your dependencies are all set up, you can build by running `make` in the root directory

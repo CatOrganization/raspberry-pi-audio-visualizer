@@ -359,7 +359,7 @@ ifeq ($(PLATFORM),PLATFORM_WEB)
 endif
 
 # Link the alsa sound library for audio input from microphones
-LDLIBS += -lasound -L./kissfft -l:libkissfft.a
+LDLIBS += -lasound -lsndfile -L./kissfft -l:libkissfft.a
 
 # Define all source files required
 PROJECT_SOURCE_FILES ?= $(wildcard src/*.c)
