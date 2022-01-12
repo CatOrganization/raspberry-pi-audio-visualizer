@@ -2,9 +2,10 @@
 #include <alsa/asoundlib.h>
 
 #include "raylib.h"
-#include "audio_source.h"
+#include "audio_source.hpp"
 #include "visualization.h"
 #include "kiss_fft.h"
+#include "pthread.h"
 
 const int screenWidth = 1600;
 const int screenHeight = 900;
@@ -28,7 +29,7 @@ int main(int argc, char *argv[])
     if (argc < 2)
     {
         fprintf(stderr, "You must provider an audio interface as the first arg.\n");
-        exit(1);    
+        exit(1);
     }
 
     // Initialization
@@ -57,6 +58,7 @@ int main(int argc, char *argv[])
 //
 //    fprintf(stdout, "audio buffer frames: %d\n", audio_buffer_samples);
 
+/*
     ALSAAudioSourceConfig config;
     config.hw_src = argv[1];
     config.audio_format = SND_PCM_FORMAT_S16_LE;
@@ -67,6 +69,13 @@ int main(int argc, char *argv[])
     ALSAAudioSource source = init_alsa_audio_source(config);
 
     WAVFileAudioSource wav_source = init_wav_audio_source("jazz-guitar-mono-signed-int.wav");
+*/
+
+    int buffer_size = 1600;
+    AudioSource *source = new WAVAudioSource(buffer_size, "jazz-guitar-mono-signed-int.wav");
+    pthread_t audio_thread;
+
+    double *local_buff = (double*) malloc(sizeof(double) * buffer_size);
 
     int num_visualizations = 6;
     int curr_vis = 0;
@@ -83,14 +92,17 @@ int main(int argc, char *argv[])
 
     vis_screen_width = screenWidth;
     vis_screen_height = screenHeight;
-    vis_audio_buffer_samples = source.audio_buffer_samples_per_read * source.num_frames_to_buffer;
-    vis_audio_sample_rate = source.audio_sample_rate;
+    vis_audio_buffer_samples = buffer_size; // source.audio_buffer_samples_per_read * source.num_frames_to_buffer;
+    vis_audio_sample_rate = source->get_audio_sample_rate(); // source.audio_sample_rate;
 
     for (int n = 0; n < num_visualizations; n++)
     {
         fprintf(stdout, "init '%s'\n", visualizations[n].name);
         visualizations[n].init();
     }
+
+    // Start audio thread
+    pthread_create(&audio_thread, NULL, (void *(*)(void *)) &WAVAudioSource::run_read_loop_in_thread, source);
 
     // Main game loop
     while (!WindowShouldClose())    // Detect window close button or ESC key
@@ -116,11 +128,16 @@ int main(int argc, char *argv[])
 //            break;
 //        }
 
+        //fprintf(stdout, "getting audio data\n");
+        source->copy_audio_data(local_buff);
+        //fprintf(stdout, "GOT audio data: %f\n", local_buff[100]);
+
+/*
         if ((err = read_frames_wav(&wav_source)) <= 0) {
             fprintf(stderr, "audio stream read failed: %ld", err);
             break;
         }
-
+*/
         // Process key presses
         int key_pressed = GetKeyPressed();
         if (key_pressed == KEY_RIGHT || key_pressed == (int) 'n')
@@ -135,16 +152,16 @@ int main(int argc, char *argv[])
             if (curr_vis < 0) curr_vis = num_visualizations - 1;
         }
 
-        visualizations[curr_vis].update(wav_source.audio_frames_buffer);
+        visualizations[curr_vis].update(local_buff);
 
-        // 'v' or 'd' toggles verbose/debug mode        
+        // 'v' or 'd' toggles verbose/debug mode
         if (key_pressed == 118 || key_pressed == 100)
         {
             if (verbose_mode) verbose_mode = 0;
             else verbose_mode = 1;
         }
 
-        // only check temp once every 5 seconds     
+        // only check temp once every 5 seconds
         if (n % (30 * 5) == 0)
         {
             run_command("vcgencmd measure_temp", cmd_output, 128);
@@ -152,14 +169,14 @@ int main(int argc, char *argv[])
 
         n++;
         sprintf(str, "fps: %d\nkey: %d\n%s", GetFPS(), key_pressed, cmd_output);
-                
+
         // Draw
         //----------------------------------------------------------------------------------
         BeginDrawing();
 
             visualizations[curr_vis].draw(verbose_mode);
 
-            if (verbose_mode) 
+            if (verbose_mode)
             {
                 DrawText(str, 0, 0, 20, RAYWHITE);
 
@@ -182,6 +199,11 @@ int main(int argc, char *argv[])
     //--------------------------------------------------------------------------------------
 
     kiss_fft_cleanup();
+
+    source->close();
+
+    pthread_join(audio_thread, NULL);
+    free(source);
 
     return 0;
 }
