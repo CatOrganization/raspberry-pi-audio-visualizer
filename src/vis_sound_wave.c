@@ -29,7 +29,7 @@ Visualization NewSoundWaveVis()
 
 static void init()
 {
-    sound_wave_line_points = malloc(sizeof(Vector2) * vis_audio_buffer_samples);
+    sound_wave_line_points = (Vector2*) malloc(sizeof(Vector2) * vis_audio_buffer_samples);
 }
 
 static void update(double *audio_frames)

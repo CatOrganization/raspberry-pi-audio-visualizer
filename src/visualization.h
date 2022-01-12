@@ -9,10 +9,10 @@ typedef void (vis_draw_func)(bool verbose);
 typedef void (vis_clean_up_func)();
 
 // These value are populated in main.c
-int vis_screen_width;
-int vis_screen_height;
-int vis_audio_buffer_samples;
-unsigned int vis_audio_sample_rate;
+extern int vis_screen_width;
+extern int vis_screen_height;
+extern int vis_audio_buffer_samples;
+extern unsigned int vis_audio_sample_rate;
 
 typedef struct Visualization {
     const char *name;

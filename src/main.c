@@ -11,6 +11,11 @@ const int screenHeight = 900;
 
 const int target_fps = 30;
 
+int vis_screen_width;
+int vis_screen_height;
+int vis_audio_buffer_samples;
+unsigned int vis_audio_sample_rate;
+
 void run_command(const char *command, char *output, int output_len)
 {
     FILE *fp = popen(command, "r");
@@ -84,7 +89,7 @@ int main(int argc, char *argv[])
     for (int n = 0; n < num_visualizations; n++)
     {
         fprintf(stdout, "init '%s'\n", visualizations[n].name);
-        visualizations[n].init(screenWidth, screenHeight, source.audio_buffer_samples_per_read);
+        visualizations[n].init();
     }
 
     // Main game loop

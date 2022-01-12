@@ -55,7 +55,7 @@ static void update(double *audio_frames)
 
         if (n % data_points_per_sample == 0)
         {
-            double *d = malloc(sizeof(double));
+            double *d = (double*) malloc(sizeof(double));
             *d = current_max;
             linked_list_add(&amplitudes, d);
 

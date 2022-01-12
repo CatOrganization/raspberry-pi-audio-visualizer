@@ -7,7 +7,7 @@ void linked_list_add(LinkedList *list, void *data)
 {
     LinkedListNode *prev_head = list->head;
     
-    list->head = malloc(sizeof(LinkedListNode));
+    list->head = (LinkedListNode*) malloc(sizeof(LinkedListNode));
     list->head->data = data;
     list->head->prev = NULL;
     list->head->next = prev_head;

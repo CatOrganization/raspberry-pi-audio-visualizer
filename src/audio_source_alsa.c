@@ -22,8 +22,8 @@ ALSAAudioSource init_alsa_audio_source(ALSAAudioSourceConfig config)
     fprintf(stdout, "audio format width: %d\n", audio_format_width);
 
     source.audio_buffer_samples_per_read = source.audio_sample_rate / config.target_reads_per_second;
-    source.raw_audio_buffer = malloc(source.audio_buffer_samples_per_read * (audio_format_width / 8));
-    source.audio_frames_buffer = malloc(sizeof(double) * source.audio_buffer_samples_per_read * source.num_frames_to_buffer);
+    source.raw_audio_buffer = (char *) malloc(source.audio_buffer_samples_per_read * (audio_format_width / 8));
+    source.audio_frames_buffer = (double*) malloc(sizeof(double) * source.audio_buffer_samples_per_read * source.num_frames_to_buffer);
 
     fprintf(stdout, "audio samples per read: %d\n", source.audio_buffer_samples_per_read);
     fprintf(stdout, "audio samples buffered: %d\n", source.audio_buffer_samples_per_read * source.num_frames_to_buffer);

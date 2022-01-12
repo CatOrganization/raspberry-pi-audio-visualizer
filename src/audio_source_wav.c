@@ -54,8 +54,8 @@ WAVFileAudioSource init_wav_audio_source(const char *file)
     source.file = sf_open(file, SFM_READ, &source.sfinfo);
     source.audio_sample_rate = source.sfinfo.samplerate;
     source.output_handle = init_output_stream(source.sfinfo, &source.audio_buffer_samples_per_read);
-    source.audio_frames_buffer = malloc(sizeof(double) * source.sfinfo.channels * source.audio_buffer_samples_per_read);
-    source.raw_audio_buffer = malloc(sizeof(short) * source.sfinfo.channels * source.audio_buffer_samples_per_read);
+    source.audio_frames_buffer = (double*) malloc(sizeof(double) * source.sfinfo.channels * source.audio_buffer_samples_per_read);
+    source.raw_audio_buffer = (short*) malloc(sizeof(short) * source.sfinfo.channels * source.audio_buffer_samples_per_read);
 
     fprintf(stdout,"Channels: %d\n", source.sfinfo.channels);
     fprintf(stdout,"Sample rate: %d\n", source.sfinfo.samplerate);

@@ -7,7 +7,7 @@
 
 Firework *new_firework(int x, int y, Color base_color, double duration_coefficient)
 {
-    Firework *firework = malloc(sizeof(Firework));
+    Firework *firework = (Firework*) malloc(sizeof(Firework));
     
     for (int i = 0; i < NUM_FIREWORK_PARTICLES; i++)
     {
