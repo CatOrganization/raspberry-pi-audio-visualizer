@@ -1,5 +1,7 @@
 #include <stdlib.h>
 
+#include <cstdio>
+
 #include "visualization.h"
 #include "linked_list.h"
 #include "effects.h"
@@ -42,7 +44,7 @@ Visualization NewFireworksAndWavesVis()
     return vis;
 }
 
-static void init() 
+static void init()
 {
     bass_filtered_audio_frames = (double*) malloc(sizeof(double) * vis_audio_buffer_samples);
     treble_filtered_audio_frames = (double*) malloc(sizeof(double) * vis_audio_buffer_samples);
@@ -96,7 +98,7 @@ static void process_bass(WaveLine *wave_line, double bass_max)
     {
         set_wave_line_color(wave_line, (Color) {0, 82, 172, (char) ((wave_speed / -100.0) * 200)});
         wave_y += wave_speed;
-        wave_speed += 10; 
+        wave_speed += 10;
         if (wave_y < -100)
         {
             wave_y = vis_screen_height;
@@ -177,13 +179,13 @@ static void draw(bool verbose)
 {
     ClearBackground(background_color);
 
-    if (show_wave) 
+    if (show_wave)
     {
         draw_wave_line(&wave_line, wave_y);
     }
 
     DrawLineStrip(sound_wave_line_points, vis_audio_buffer_samples, (Color) {0, 255 - background_color.g, 0, 255 });
-    
+
     linked_list_for_each(&firework_list, &firework_list_draw);
 }
 

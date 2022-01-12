@@ -6,7 +6,6 @@ WaveLine init_wave_line(Shader wave_line_shader, const char *uniform_prefix, int
 {
     WaveLine wave_line;
     wave_line.shader = wave_line_shader;
-    
     char str[30] = "";
 
     strcpy(str, uniform_prefix);
