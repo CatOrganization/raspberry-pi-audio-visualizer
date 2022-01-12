@@ -13,11 +13,11 @@ typedef struct LinearFilter
 
 // Low pass bass filter that filters out frequencies > 500Hz
 // Coefficients calculated via SciPy: scipy.signal.butter(4, 500, bytpe='lowpass', fs=44100)
-const LinearFilter LowPassBassFilter; 
+extern const LinearFilter LowPassBassFilter;
 
 // High pass treble filter that filters our frequencies < 2000Hz
 // Coefficients calculated via SciPy: scipy.signal.butter(4, 2000, btype='highpass', fs=44100)
-const LinearFilter HighPassTrebleFilter;
+extern const LinearFilter HighPassTrebleFilter;
 
 // absf returns the absolute value of the given double
 double absf(double d);

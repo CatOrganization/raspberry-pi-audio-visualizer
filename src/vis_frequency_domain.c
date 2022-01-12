@@ -33,9 +33,9 @@ Visualization NewFrequencyDomainVis()
 static void init()
 {
     fft_cfg = kiss_fft_alloc(vis_audio_buffer_samples, false, NULL, NULL);
-    fft_in = malloc(sizeof(kiss_fft_cpx) * vis_audio_buffer_samples);
-    fft_out = malloc(sizeof(kiss_fft_cpx) * vis_audio_buffer_samples);
-    magnitudes = malloc(sizeof(double) * (vis_audio_buffer_samples / 2));
+    fft_in = (kiss_fft_cpx*) malloc(sizeof(kiss_fft_cpx) * vis_audio_buffer_samples);
+    fft_out = (kiss_fft_cpx*) malloc(sizeof(kiss_fft_cpx) * vis_audio_buffer_samples);
+    magnitudes = (double*) malloc(sizeof(double) * (vis_audio_buffer_samples / 2));
     
     hz_per_step = vis_audio_sample_rate / (vis_audio_buffer_samples / 2.0);
     fprintf(stdout, "sample_rate: %d; hz_per_step: %f\n", vis_audio_sample_rate, hz_per_step);

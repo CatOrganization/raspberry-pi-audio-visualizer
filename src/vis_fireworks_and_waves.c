@@ -44,10 +44,10 @@ Visualization NewFireworksAndWavesVis()
 
 static void init() 
 {
-    bass_filtered_audio_frames = malloc(sizeof(double) * vis_audio_buffer_samples);
-    treble_filtered_audio_frames = malloc(sizeof(double) * vis_audio_buffer_samples);
+    bass_filtered_audio_frames = (double*) malloc(sizeof(double) * vis_audio_buffer_samples);
+    treble_filtered_audio_frames = (double*) malloc(sizeof(double) * vis_audio_buffer_samples);
 
-    sound_wave_line_points = malloc(sizeof(Vector2) * vis_audio_buffer_samples);
+    sound_wave_line_points = (Vector2*) malloc(sizeof(Vector2) * vis_audio_buffer_samples);
 
     firework_list.head = NULL;
     firework_list.size = 0;
