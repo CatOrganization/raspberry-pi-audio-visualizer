@@ -16,8 +16,14 @@ AudioSource::AudioSource(int buffer_size, int frame_rate) : atomic_done{false}, 
         exit(1);
     }
 
-    this->audio_frames_buffer = (double*) malloc(sizeof(double) * buffer_size);
+    this->audio_frames_buffer = new double[buffer_size];
 }
+
+AudioSource::~AudioSource()
+{
+    delete this->audio_frames_buffer;
+}
+
 
 void AudioSource::copy_audio_data(double *dst)
 {
@@ -41,7 +47,7 @@ void WAVAudioSource::run_read_loop()
     double time_per_frame_ns = (1.0 / this->frame_rate) * 1e9;
     int samples_per_frame = min(this->buffer_size, this->sfinfo.samplerate / this->frame_rate);
 
-    double *single_frame_buffer = (double*) malloc(sizeof(double) * samples_per_frame);
+    double *single_frame_buffer = new double[samples_per_frame];
 
     while (!this->done())
     {
@@ -82,6 +88,6 @@ void WAVAudioSource::run_read_loop()
         }
     }
 
-    free(single_frame_buffer);
+    delete single_frame_buffer;
 }
 

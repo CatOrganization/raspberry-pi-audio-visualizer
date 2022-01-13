@@ -14,6 +14,7 @@ using namespace std;
 class AudioSource {
     public:
         AudioSource(int buffer_size, int frame_rate);
+        ~AudioSource();
 
         void *run_read_loop_in_thread() { this->run_read_loop(); return NULL; }
 
