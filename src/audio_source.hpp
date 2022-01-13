@@ -13,7 +13,7 @@ using namespace std;
 
 class AudioSource {
     public:
-        AudioSource(int buffer_size);
+        AudioSource(int buffer_size, int frame_rate);
 
         void *run_read_loop_in_thread() { this->run_read_loop(); return NULL; }
 
@@ -34,6 +34,7 @@ class AudioSource {
         bool done() { return this->atomic_done.load(); }
 
         int buffer_size;
+        int frame_rate;
 
         pthread_mutex_t audio_frames_buffer_lock;
         double *audio_frames_buffer;
@@ -44,7 +45,7 @@ class AudioSource {
 
 class WAVAudioSource : public AudioSource {
     public:
-        WAVAudioSource(int buffer_size, string filename);
+        WAVAudioSource(int buffer_size, int frame_frate, string filename);
 
         void run_read_loop();
 

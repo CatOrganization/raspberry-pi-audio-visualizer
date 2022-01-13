@@ -7,7 +7,7 @@
 
 using namespace std;
 
-AudioSource::AudioSource(int buffer_size) : atomic_done{false}, buffer_size{buffer_size}
+AudioSource::AudioSource(int buffer_size, int frame_rate) : atomic_done{false}, buffer_size{buffer_size}, frame_rate{frame_rate}
 {
     cout << "init mutex" << endl;
     int err = pthread_mutex_init(&this->audio_frames_buffer_lock, NULL);
@@ -26,7 +26,7 @@ void AudioSource::copy_audio_data(double *dst)
     pthread_mutex_unlock(&this->audio_frames_buffer_lock);
 }
 
-WAVAudioSource::WAVAudioSource(int buffer_size, string filename) : AudioSource(buffer_size)
+WAVAudioSource::WAVAudioSource(int buffer_size, int frame_rate, string filename) : AudioSource(buffer_size, frame_rate)
 {
     this->file = sf_open(filename.c_str(), SFM_READ, &this->sfinfo);
 
@@ -38,21 +38,41 @@ WAVAudioSource::WAVAudioSource(int buffer_size, string filename) : AudioSource(b
 
 void WAVAudioSource::run_read_loop()
 {
-    double time_per_frame_ns = (((double) this->buffer_size) / ((double) this->sfinfo.samplerate)) * 1e9;
+    double time_per_frame_ns = (1.0 / this->frame_rate) * 1e9;
+    int samples_per_frame = min(this->buffer_size, this->sfinfo.samplerate / this->frame_rate);
+
+    double *single_frame_buffer = (double*) malloc(sizeof(double) * samples_per_frame);
 
     while (!this->done())
     {
         long start = chrono::high_resolution_clock::now().time_since_epoch().count();
 
-        pthread_mutex_lock(&this->audio_frames_buffer_lock);
-        int frames_read = sf_readf_double(this->file, this->audio_frames_buffer, this->buffer_size);
-        pthread_mutex_unlock(&this->audio_frames_buffer_lock);
-
+        // Read the frames out of the file
+        int frames_read = sf_readf_double(this->file, single_frame_buffer, samples_per_frame);
         if (frames_read <= 0)
         {
             cout << "error reading wav file: " << frames_read << endl;
             exit(1);
         }
+
+        // Lock the audio buffer since we're about to mess with it
+        pthread_mutex_lock(&this->audio_frames_buffer_lock);
+
+        // This is the offset into the audio_frames_buffer that everything for the current frame will start at.
+        int offset = max(0, this->buffer_size - samples_per_frame);
+
+        // If the buffer is bigger than the samples_per_frame, move over what was in there before
+        if (offset > 0)
+        {
+            memmove(this->audio_frames_buffer, this->audio_frames_buffer + samples_per_frame, offset * sizeof(double));
+        }
+
+        // Do the real copy
+        memcpy(this->audio_frames_buffer + offset, single_frame_buffer, samples_per_frame * sizeof(double));
+
+        // Done with audio frames buffer
+        pthread_mutex_unlock(&this->audio_frames_buffer_lock);
+
 
         long frame_time = chrono::high_resolution_clock::now().time_since_epoch().count() - start;
         if (frame_time < time_per_frame_ns)
@@ -61,5 +81,7 @@ void WAVAudioSource::run_read_loop()
             this_thread::sleep_for(chrono::duration<double, std::nano>(time_per_frame_ns - frame_time));
         }
     }
+
+    free(single_frame_buffer);
 }
 

@@ -10,7 +10,7 @@
 const int screenWidth = 1600;
 const int screenHeight = 900;
 
-const int target_fps = 30;
+const int target_fps = 60;
 
 int vis_screen_width;
 int vis_screen_height;
@@ -71,8 +71,8 @@ int main(int argc, char *argv[])
     WAVFileAudioSource wav_source = init_wav_audio_source("jazz-guitar-mono-signed-int.wav");
 */
 
-    int buffer_size = 1600;
-    AudioSource *source = new WAVAudioSource(buffer_size, "jazz-guitar-mono-signed-int.wav");
+    int buffer_size = 5880;
+    AudioSource *source = new WAVAudioSource(buffer_size, target_fps, "jazz-guitar-mono-signed-int.wav");
     pthread_t audio_thread;
 
     double *local_buff = (double*) malloc(sizeof(double) * buffer_size);
