@@ -1,14 +1,18 @@
 #include "visualization.hpp"
 #include "filter.h"
 
+#include <iostream>
+
+using namespace std;
+
 TripleWaveLineVisualization::TripleWaveLineVisualization(int screen_width, int screen_height, int audio_buffer_size, int audio_sample_rate) :
     VisualizationClass(screen_width, screen_height, audio_buffer_size, audio_sample_rate)
 {
-    this->base_filtered_audio_frames = new double[audio_buffer_length];
-    this->treble_filtered_audio_frames = new double[audio_buffer_length];
+    this->base_filtered_audio_frames = new double[audio_buffer_size];
+    this->treble_filtered_audio_frames = new double[audio_buffer_size];
 
     int line_size = min(screen_width, audio_buffer_size);
-    this->downsample_buf
+    //this->downsample_buf
 
     this->base_line = new Vector2[line_size];
     this->midrange_line = new Vector2[line_size];

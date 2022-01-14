@@ -53,7 +53,7 @@ void VisualizationClass::calculate_sound_wave_line_points(double *audio, Vector2
 
 class TripleWaveLineVisualization : public VisualizationClass {
     public:
-        TripleWaveLineVisualization(int screen_width, int screen_height, int audio_buffer_length, int audio_sample_rate);ss
+        TripleWaveLineVisualization(int screen_width, int screen_height, int audio_buffer_length, int audio_sample_rate);
         ~TripleWaveLineVisualization();
 
         void update(double *audio);
