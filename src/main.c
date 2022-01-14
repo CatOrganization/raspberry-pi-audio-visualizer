@@ -4,13 +4,14 @@
 #include "raylib.h"
 #include "audio_source.hpp"
 #include "visualization.h"
+#include "visualization.hpp"
 #include "kiss_fft.h"
 #include "pthread.h"
 
 const int screenWidth = 1600;
 const int screenHeight = 900;
 
-const int target_fps = 60;
+const int target_fps = 30;
 
 int vis_screen_width;
 int vis_screen_height;
@@ -71,34 +72,35 @@ int main(int argc, char *argv[])
     WAVFileAudioSource wav_source = init_wav_audio_source("jazz-guitar-mono-signed-int.wav");
 */
 
-    int buffer_size = 5880;
+    int buffer_size = 5880/4;
     AudioSource *source = new WAVAudioSource(buffer_size, target_fps, "jazz-guitar-mono-signed-int.wav");
     pthread_t audio_thread;
 
     double *local_buff = (double*) malloc(sizeof(double) * buffer_size);
-
-    int num_visualizations = 6;
-    int curr_vis = 0;
-    Visualization visualizations[] = {
-        NewFireworksAndWavesVis(),
-        NewSoundWaveVis(),
-        NewDvdLogoVis(),
-        NewTimeDomainVis(),
-        NewFrequencyAndWaveVis(),
-        NewFrequencyDomainVis()
-    };
-
-    fprintf(stdout, "initializing visualizations\n");
 
     vis_screen_width = screenWidth;
     vis_screen_height = screenHeight;
     vis_audio_buffer_samples = buffer_size; // source.audio_buffer_samples_per_read * source.num_frames_to_buffer;
     vis_audio_sample_rate = source->get_audio_sample_rate(); // source.audio_sample_rate;
 
+    fprintf(stdout, "initializing visualizations\n");
+
+    int num_visualizations = 7;
+    int curr_vis = 0;
+    VisualizationClass *visualizations[] = {
+        new VisualizationWrapper(NewFireworksAndWavesVis()),
+        new VisualizationWrapper(NewSoundWaveVis()),
+        new VisualizationWrapper(NewDvdLogoVis()),
+        new VisualizationWrapper(NewTimeDomainVis()),
+        new VisualizationWrapper(NewFrequencyAndWaveVis()),
+        new VisualizationWrapper(NewFrequencyDomainVis()),
+        new TripleWaveLineVisualization(screenWidth, screenHeight, buffer_size, source->get_audio_sample_rate())
+    };
+
     for (int n = 0; n < num_visualizations; n++)
     {
-        fprintf(stdout, "init '%s'\n", visualizations[n].name);
-        visualizations[n].init();
+    //    fprintf(stdout, "init '%s'\n", visualizations[n].name);
+      //  visualizations[n].init();
     }
 
     // Start audio thread
@@ -152,7 +154,7 @@ int main(int argc, char *argv[])
             if (curr_vis < 0) curr_vis = num_visualizations - 1;
         }
 
-        visualizations[curr_vis].update(local_buff);
+        visualizations[curr_vis]->update(local_buff);
 
         // 'v' or 'd' toggles verbose/debug mode
         if (key_pressed == 118 || key_pressed == 100)
@@ -174,14 +176,14 @@ int main(int argc, char *argv[])
         //----------------------------------------------------------------------------------
         BeginDrawing();
 
-            visualizations[curr_vis].draw(verbose_mode);
+            visualizations[curr_vis]->draw(verbose_mode);
 
             if (verbose_mode)
             {
                 DrawText(str, 0, 0, 20, RAYWHITE);
 
-                int vis_name_width = MeasureText(visualizations[curr_vis].name, 16);
-                DrawText(visualizations[curr_vis].name, screenWidth - vis_name_width - 10, screenHeight - 20, 16, RAYWHITE);
+                int vis_name_width = MeasureText(visualizations[curr_vis]->name(), 16);
+                DrawText(visualizations[curr_vis]->name(), screenWidth - vis_name_width - 10, screenHeight - 20, 16, RAYWHITE);
             }
 
         EndDrawing();
@@ -192,7 +194,7 @@ int main(int argc, char *argv[])
     //--------------------------------------------------------------------------------------
     for (int n = 0; n < num_visualizations; n++)
     {
-        visualizations[n].clean_up();
+        delete visualizations[n];
     }
 
     CloseWindow();        // Close window and OpenGL context
