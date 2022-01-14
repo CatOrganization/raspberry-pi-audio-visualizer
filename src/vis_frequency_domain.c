@@ -36,7 +36,7 @@ static void init()
     fft_in = (kiss_fft_cpx*) malloc(sizeof(kiss_fft_cpx) * vis_audio_buffer_samples);
     fft_out = (kiss_fft_cpx*) malloc(sizeof(kiss_fft_cpx) * vis_audio_buffer_samples);
     magnitudes = (double*) malloc(sizeof(double) * (vis_audio_buffer_samples / 2));
-    
+
     hz_per_step = vis_audio_sample_rate / (vis_audio_buffer_samples / 2.0);
     fprintf(stdout, "sample_rate: %d; hz_per_step: %f\n", vis_audio_sample_rate, hz_per_step);
 }
@@ -89,7 +89,7 @@ static int determine_x_coord(float percentage, int num_lines)
     {
         return (1.0f - (percentage / percentage_per_line)) * vis_screen_width;
     }
-    else 
+    else
     {
         return (percentage / percentage_per_line) * vis_screen_width;
     }
@@ -114,9 +114,9 @@ static void draw(bool verbose)
     {
         double magnitude = (magnitudes[n-1] + magnitudes[n]*2 + magnitudes[n+1]) / 2.0;// + magnitudes[n+1]) / 2;
         int log_magnitude = magnitude == 0 ? 0 : (int) (log((double) magnitude + 1) * 5);
-        
+
         float percentage = n / (float) num_magnitudes;
-        
+
         int x = determine_x_coord(percentage, num_lines);
         int y = determine_y_coord(percentage);
         Color color = blend_colors(DARKBLUE, DARKPURPLE, percentage);
