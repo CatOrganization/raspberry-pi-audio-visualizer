@@ -1,6 +1,8 @@
 #ifndef RASPBERRY_PI_AUDIO_VISUALIZER_AUDIO_SOURCE_HPP
 #define RASPBERRY_PI_AUDIO_VISUALIZER_AUDIO_SOURCE_HPP
 
+#include "alsa/asoundlib.h"
+
 #include <atomic>
 #include <pthread.h>
 #include <string>
@@ -47,14 +49,17 @@ class AudioSource {
 class WAVAudioSource : public AudioSource {
     public:
         WAVAudioSource(int buffer_size, int frame_frate, string filename);
+        ~WAVAudioSource();
 
         void run_read_loop();
 
         int get_audio_sample_rate() { return sfinfo.samplerate; }
-
     private:
         SF_INFO sfinfo;
         SNDFILE *file;
+
+        snd_pcm_t *output_handle;
+        snd_async_handler_t *async_handler;
 };
 
 /*
