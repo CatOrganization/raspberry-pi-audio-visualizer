@@ -31,7 +31,7 @@ class AudioSource {
         int get_buffer_size() const { return buffer_size; }
         virtual int get_audio_sample_rate() = 0;
 
-        void close() { this->atomic_done = true; free(audio_frames_buffer); }
+        void close() { this->atomic_done = true; }
 
     protected:
         bool done() { return this->atomic_done.load(); }
@@ -46,6 +46,12 @@ class AudioSource {
         atomic<bool> atomic_done;
 };
 
+// Get an audio source given an arg from a user.
+// If this arg ends in `.wav` this will return a WAVAudioSource,
+// Otherwise it assumes the arg is a hardware audio source (run `arecord -l` for a list of hw sources)
+// and returns an ALSAAudioSource.
+AudioSource *get_audio_source(int buffer_size, int frame_rate, char *arg);
+
 class WAVAudioSource : public AudioSource {
     public:
         WAVAudioSource(int buffer_size, int frame_frate, string filename);
@@ -53,24 +59,27 @@ class WAVAudioSource : public AudioSource {
 
         void run_read_loop();
 
-        int get_audio_sample_rate() { return sfinfo.samplerate; }
+        int get_audio_sample_rate() { return this->samplerate; }
     private:
-        SF_INFO sfinfo;
-        SNDFILE *file;
-
+        int samplerate;
+        int num_audio_frames;
+        short *audio_data;
+        
         snd_pcm_t *output_handle;
-        snd_async_handler_t *async_handler;
 };
 
-/*
+
 class ALSAAudioSource : public AudioSource {
     public:
-        ALSAAudioSource(int buffer_size) : AudioSource(buffer_size) {};
+        ALSAAudioSource(int buffer_size, int frame_rate, char *hw_src);
 
         void run_read_loop();
-
+        int get_audio_sample_rate() { return this->samplerate; }
     private:
-        char *ra
+        unsigned int samplerate;
+        int samples_per_frame;
+        
+        snd_pcm_t *input_handle;
 };
-*/
+
 #endif //RASPBERRY_PI_AUDIO_VISUALIZER_AUDIO_SOURCE_HPP

@@ -5,6 +5,10 @@
 
 using namespace std;
 
+/**
+ * This while file is a WIP, don't look too hard at it.
+ */
+
 TripleWaveLineVisualization::TripleWaveLineVisualization(int screen_width, int screen_height, int audio_buffer_size, int audio_sample_rate) :
     VisualizationClass(screen_width, screen_height, audio_buffer_size, audio_sample_rate)
 {
