@@ -29,6 +29,8 @@ class VisualizationClass {
         int audio_sample_rate;
 };
 
+// VisualizationWrapper wraps a C-style visualization so it can be used a a C++ style VisualizationClass.
+// I'm too lazy to go back and re-do the vizualizations I've already made...
 class VisualizationWrapper : public VisualizationClass {
     public:
         VisualizationWrapper(Visualization viz) : viz{viz}, VisualizationClass(0, 0, 0, 0)
